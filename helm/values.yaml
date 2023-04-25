@@ -1,0 +1,466 @@
+debug:
+  enabled: true
+
+proxy:
+  service:
+    type: ClusterIP
+  chp:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 1
+        memory: 256Mi
+
+rbac:
+  create: false
+
+ingress:
+  enabled: true
+ #ingressClassName: nginx
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-body-size: 300m
+  hosts:
+#    - hub-aicope.cloud.trusted.e-infra.cz
+    - gromacs-hub.dyn.cloud.e-infra.cz
+  tls:
+    - hosts:
+        - gromacs-hub.dyn.cloud.e-infra.cz
+      secretName: "gromacs-hub-dyn-cloud-e-infra-cz-tls"
+
+hub:
+  serviceAccount:
+    create: false
+    name: default
+
+  #allowNamedServers: true
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+     drop:
+     - ALL
+  podSecurityContext:
+    fsGroupChangePolicy: OnRootMismatch
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  extraConfig:
+    form-0: |
+        from traitlets import default, Unicode
+        from tornado import gen
+        from kubespawner import KubeSpawner
+
+        class DockerImageChooser(KubeSpawner):
+          form_template = Unicode("""
+          <script>
+          function customImageCheck(that) {{
+            if (that.value == "custom") {{
+              document.getElementById("custom").style.display = "block";
+              }} else {{
+              document.getElementById("custom").style.display = "none";
+            }}
+          }}
+          function customGpuCheck(that) {{
+            if (document.getElementById("gpuid").value != "none") {{
+              document.getElementById("shm").style.display = "block";
+            }} else {{
+              document.getElementById("shm").style.display = "none";
+            }}
+          }}
+          </script>
+          <h3>Image</h3>
+          <p>Select particular image or select custom image.</p>
+          <label for="dockerimage">Select an image:</label>
+          <select class="data-list-input" name="dockerimage" required="required" style="width:190px;" onchange="customImageCheck(this);">
+                <option value="cerit.io/hubs/minimalnb:13-01-2023">Minimal NB</option>
+                <option value="cerit.io/hubs/datasciencenb:13-01-2023">Datascience NB</option>
+                <option value="cerit.io/hubs/scipynb:13-01-2023">Scipy NB</option>
+                <option value="cerit.io/hubs/tensorflowgpu-11-0:14-02-2022-1">TensorFlow 2.7.0 with GPU and TensorBoard</option>
+                <option value="cerit.io/hubs/tensorflowgpu:2.11.1">TensorFlow 2.11.1 with GPU and TensorBoard</option>
+                <option value="cerit.io/hubs/rationai:edge-user">RationAI with GPU and TF,TB</option>
+                <option value="custom">Custom</option>
+          </select>
+
+          <div id="custom" style="display: none;">
+          <label for="customimage">Custom image name:</label> <input type="text" id="customimage" name="customimage">
+          </div>         
+
+          <h3>Home</h3>
+          <div id="phomeDiv" style="display: block;">
+          <input type="checkbox" id="delhome" name="delhome" value="delete">
+          <label for="delhome">Erase if home exists</label><br/>
+          <p style="background-color:orange;">Take care of checking this button, it removes whole home directory and previous data will be lost. Use in case only when notebook is broken so it does not start, in other cases, remove data from terminal.</p>
+          </div>
+
+          <h3>Storage - PVC</h3>
+          <div id="pvcnames" style="display: block;">
+            <label for="pvcid">Select additional PVCs connect to <code>/mnt/data</code>:</label>
+            <select class="form-control" name="pvcname" id="pvcid" autofocus>
+              {option_template}
+            </select>
+          </div>
+
+          <h3>Resources</h3>
+          <h4>CPU</h4>
+          <p>By default, 1 CPU is assigned to notebooks.</p>
+          <label for="cpuselection">Select number of CPU (1-40):</label> <input type="number" id="cpuselection" name="cpuselection" min="1" max="40" value="1">
+
+          <h4>Memory</h4>
+          <p>Please choose upper memory limit (in GB) which will be assigned to notebook (default 4):</p>
+          <select class="data-list-input" name="memselection" style="width:190px;">
+                <option value="4">4</option>
+                <option value="8">8</option>
+                <option value="12">12</option>
+                <option value="16">16</option>
+                <option value="32">32</option>
+                <option value="64">64</option>
+                <option value="128">128</option>
+                <option value="192">192</option>
+          </select>
+
+          <h4>GPU</h4>
+          <label for="gpuselection">By default, no GPU is assigned. Would you like to use GPU?</label>
+          <select class="data-list-input" name="gpuselection" id="gpuid" required="required" style="width:190px;" onchange="customGpuCheck(this);">
+              <option value="none">No</option>
+              <option value="any">Yes</option>
+          </select>
+
+          <div id="shm" style="display: none;">
+            <label for="shmsize">Select shared memory size (in GB):</label> <input type="number" id="shmsize" name="shmsize" min="1" max="8" value="1">
+          </div>
+          """,)
+
+          option_template = Unicode("""
+              <option value="{item}">{item}</option>""",
+              config = True, help = "Template for html form options."
+          )
+
+            
+          async def get_options_form(self):
+            #pvcs_raw = await self.api.list_namespaced_persistent_volume_claim(namespace="research-aicope",watch=False)
+            pvcs_raw = await self.api.list_namespaced_persistent_volume_claim(namespace="krenek-ns",watch=False)
+            await asyncio.sleep(3)
+            pvcs = ['none']  
+            for pvc in pvcs_raw.items:
+              if pvc.metadata.name.startswith("pvc"):
+                pvcs.append(pvc.metadata.name)
+
+            options = ''.join([ self.option_template.format(item=p) for p in pvcs ])
+
+            return self.form_template.format(option_template=options)
+                                                                                
+          def options_from_form(self, formdata):                                
+            """Parse the submitted form data and turn it into the correct       
+               structures for self.user_options."""                                                                                                            
+            options = {}                                                        
+            options['cpu'] = formdata.get('cpuselection')[0]
+            mem = formdata.get('memselection')[0]
+            if mem:
+              options['mem'] = mem
+            else:
+              options['mem'] = "2"
+            options['gpu'] = formdata.get('gpuselection')[0]
+            if formdata.get('delhome'):
+              options['delhome'] = formdata.get('delhome')[0]
+            dockerimage = formdata.get('dockerimage')[0]
+            if dockerimage == "custom":
+                dockerimage = formdata.get('customimage')[0]
+                options['custom'] = True
+            options['container_image'] = dockerimage
+            if options['gpu'] != "none":
+              options['shmsize'] = formdata.get('shmsize')[0]
+            if formdata.get('pvcname')[0] != "none":
+              options['pvc'] = formdata.get('pvcname')[0]
+            return options
+    form-1: |
+      c.JupyterHub.spawner_class = DockerImageChooser
+      c.MappingKernelManager.cull_idle_timeout = 259200
+      c.MappingKernelManager.cull_connected = False
+      c.MappingKernelManager.cull_busy = False
+      c.NotebookApp.shutdown_no_activity_timeout = 259200
+
+    pre-spawn-hook: |
+      import asyncio
+      import kubernetes_asyncio
+      from kubernetes_asyncio import config, client
+
+      from kubernetes_asyncio.client import (
+          V1ObjectMeta,
+          V1Secret,
+          V1PersistentVolume,
+          V1PersistentVolumeClaim,
+          V1ResourceRequirements,
+          V1LabelSelector,
+          V1CSIPersistentVolumeSource,
+          V1PersistentVolumeSpec,
+          V1PersistentVolumeClaimSpec,
+          V1Namespace,
+          V1ServiceAccount,
+          V1RoleBinding,
+          V1RoleRef,
+          V1Subject,
+          V1ClusterRole,
+          V1PolicyRule,
+          ApiException,
+      )
+
+      async def check_pvc(home_pvc_name, namespace):
+          async with kubernetes_asyncio.client.ApiClient() as api_client:
+              v1 = kubernetes_asyncio.client.CoreV1Api(api_client)
+              pvcs = await v1.list_namespaced_persistent_volume_claim(namespace)
+              for claim in pvcs.items:
+                  if claim.metadata.name == home_pvc_name:
+                      return claim
+              return None
+
+      async def delete_pvc(namespace, pvc):
+          async with kubernetes_asyncio.client.ApiClient() as api_client:
+              v1 = kubernetes_asyncio.client.CoreV1Api(api_client)
+              await v1.delete_namespaced_persistent_volume_claim(name=pvc, namespace=namespace)
+              await asyncio.sleep(1)
+
+      async def create_pvc(home_pvc_name, home_pv_name, namespace, storage_class, capacity):
+          pvc = V1PersistentVolumeClaim()
+          pvc.api_version = "v1"
+          pvc.kind = "PersistentVolumeClaim"
+          pvc.metadata = V1ObjectMeta()
+          pvc.metadata.name = home_pvc_name
+          pvc.spec = V1PersistentVolumeClaimSpec()
+          pvc.spec.access_modes = ['ReadWriteMany']
+          pvc.spec.resources = V1ResourceRequirements()
+          pvc.spec.resources.requests = {"storage": capacity}
+          pvc.spec.storage_class_name = storage_class
+          if storage_class != "nfs-csi":
+              pvc.spec.selector = V1LabelSelector()
+              pvc.spec.selector.match_labels = {"name": home_pv_name}
+          try:
+            async with kubernetes_asyncio.client.ApiClient() as api_client:
+              v1 = kubernetes_asyncio.client.CoreV1Api(api_client)
+              x = await v1.create_namespaced_persistent_volume_claim(namespace, pvc)
+              await asyncio.sleep(1)
+          except ApiException as e:
+            if re.search("object is being deleted:", e.body):
+              raise web.HTTPError(401, "Can't delete PVC {}, please contact administrator!".format(home_pvc_name))
+              return False
+          return True
+
+      def add_volume(spawner_vol_list, volume, volname):
+          volume_exists = False
+          for vol in spawner_vol_list:
+              if "name" in vol and vol["name"] == volname:
+                  volume_exists = True
+          if not volume_exists:
+              spawner_vol_list.append(volume) 
+
+      def mount(spawner, pv, pvc, mountpath):
+          volume = {"name": pv, "persistentVolumeClaim": {"claimName": pvc}}
+          volume_mount = {"mountPath": mountpath, "name": pv}
+          if len(spawner.volumes) == 0:
+              spawner.volumes = [volume]
+          else:
+              add_volume(spawner.volumes, volume, pv)
+          if len(spawner.volume_mounts) == 0:
+              spawner.volume_mounts = [volume_mount]
+          else:
+              add_volume(spawner.volume_mounts, volume_mount, pvc)
+
+      def mount_shm(spawner):
+          volume = {"name": "dshm",
+                    "emptyDir": {"medium": "Memory", "sizeLimit": spawner.user_options.get('shmsize', '1')+'G'}}
+          volume_mount = {"mountPath": "/dev/shm", "name": "dshm"}
+          volume_exists = False
+          for vol in spawner.volumes:
+              if "name" in vol and vol["name"] == "dshm":
+                  volume_exists = True
+          if not volume_exists:
+              spawner.volumes.append(volume)
+              spawner.volume_mounts.append(volume_mount)
+
+      async def mount_persistent_hub_home(spawner, username, namespace):
+          hub_home_name = username + "-home-default"
+
+          if spawner.user_options.get('delhome') == "delete":
+              pvc = await check_pvc(hub_home_name, namespace)
+              if pvc:
+                await delete_pvc(namespace, hub_home_name)
+              await create_pvc(hub_home_name, hub_home_name + "-pv", namespace, "nfs-csi", "10Gi")
+          else:
+            pvc = await check_pvc(hub_home_name, namespace)
+            if not pvc:
+              await create_pvc(hub_home_name, hub_home_name + "-pv", namespace, "nfs-csi", "10Gi")
+
+          mount(spawner, hub_home_name + "-pv", hub_home_name, "/home/jovyan")
+       
+
+      async def bootstrap_pre_spawn(spawner):
+        config.load_incluster_config()
+        namespace = spawner.namespace
+        username = spawner.user.name
+        original = username
+        if "-" in username:
+            username = username.replace("-", "-2d")
+        if "_" in username:
+            username = username.replace("_", "-5f")
+
+        #spawner.environment = {"JUPYTERHUB_API_URL": "http://hub.research-aicope.svc.cluster.local:8081/hub/api",
+        #                       "JUPYTERHUB_ACTIVITY_URL": "http://hub.research-aicope.svc.cluster.local:8081/hub/api/users/"+username+"/activity"}
+        spawner.environment = {"JUPYTERHUB_API_URL": "http://hub.krenek-ns.svc.cluster.local:8081/hub/api",
+                               "JUPYTERHUB_ACTIVITY_URL": "http://hub.krenek-ns.svc.cluster.local:8081/hub/api/users/"+username+"/activity"}
+
+        await mount_persistent_hub_home(spawner, username, namespace)
+
+        if "--SingleUserNotebookApp.max_body_size=6291456000" not in spawner.args:
+                spawner.args.append("--SingleUserNotebookApp.max_body_size=6291456000")
+
+        gpu = spawner.user_options.get('gpu')
+        cpu = spawner.user_options.get('cpu')
+        mem = spawner.user_options.get('mem')
+        image = spawner.user_options.get('container_image')
+
+        spawner.image = image
+        spawner.cpu_limit = float(cpu)
+        spawner.cpu_guarantee = float(cpu)
+        spawner.mem_limit = mem + 'G'
+        spawner.mem_guarantee = mem + 'G'
+
+        if gpu is None:
+           gpu = ""
+        else:
+           mount_shm(spawner)
+
+        if spawner.user_options.get('pvc'):
+           mount(spawner, "data", spawner.user_options.get('pvc'), "/mnt/data")
+        
+        if gpu.startswith("mig"):
+           spawner.extra_resource_limits = {"nvidia.com/"+gpu: 1}
+        elif gpu == "a40":
+           spawner.node_selector = {"nvidia.com/gpu.product": "NVIDIA-A40"}
+           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
+        elif gpu == "a10":
+           spawner.node_selector = {"nvidia.com/gpu.product": "NVIDIA-A10"}
+           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
+        elif gpu == "a100":
+           spawner.node_selector = {"nvidia.com/gpu.product": "NVIDIA-A100"}
+           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
+        elif gpu == "any":
+           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
+
+      c.KubeSpawner.pre_spawn_hook = bootstrap_pre_spawn
+      c.KubeSpawner.enable_user_namespaces = False
+  config:
+#    Authenticator:
+#      allowed_users:
+#        - ljocha
+#    DummyAuthenticator:
+#      password: budul9nek
+#      auto_login: true
+#      enable_auth_state: true
+    GenericOAuthenticator:
+      authorize_url: https://login.e-infra.cz/oidc/authorize
+      token_url: https://login.e-infra.cz/oidc/token
+      userdata_url: https://login.e-infra.cz/oidc/userinfo
+      oauth_callback_url: https://gromacs-hub.dyn.cloud.e-infra.cz/hub/oauth_callback
+
+#      authorize_url: https://login.cloud.e-infra.cz/auth
+#      token_url: https://login.cloud.e-infra.cz/token
+#      userdata_url: https://login.cloud.e-infra.cz/userinfo
+#      oauth_callback_url: https://gromacs-hub.dyn.cloud.e-infra.cz/hub/oauth_callback
+      client_id: f408e904-6eb7-4398-b9b6-26c97c5c3295
+      client_secret: a6cd66e9-30ff-4ab8-8643-af1b0df51a8f810d5def-43ec-4920-b21d-db21e1584dcf
+      userdata_params:
+        state: state
+      scope:
+        - openid
+        - profile
+        - email
+      username_key: preferred_username
+    JupyterHub:
+      authenticator_class: generic-oauth
+#      authenticator_class: dummy
+  image:
+    name: cerit.io/hubs/jupyterhub
+    tag: 14-12-2022
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+  livenessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 10
+    timeoutSeconds: 10
+  readinessProbe:
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 10
+    timeoutSeconds: 10
+#  extraEnv:
+#    OAUTH2_AUTHORIZE_URL: https://login.cloud.e-infra.cz/auth
+#    OAUTH2_TOKEN_URL: https://login.cloud.e-infra.cz/token 
+#    OAUTH2_CALLBACK_URL: https://gromacs-hub.dyn.cloud.e-infra.cz/hub/oauth_callback
+  db:
+    pvc:
+      storageClassName: nfs-csi
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    allowPrivilegeEscalation: false
+  consecutiveFailureLimit: 0
+  networkPolicy:
+    interNamespaceAccessLabels: "accept"
+    egressAllowRules:
+      cloudMetadataServer: false
+
+singleuser:
+  networkPolicy:
+    enabled: false
+  cloudMetadata:
+    blockWithIptables: false                                                                     
+  startTimeout: 600
+  defaultUrl: "/lab"
+  storage:  
+    type: "none"
+  cmd: jupyterhub-singleuser 
+  uid: 1000
+  fsGid: 100
+  allowPrivilegeEscalation: false
+  extraPodConfig:
+    securityContext:
+      fsGroupChangePolicy: OnRootMismatch
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop:
+        - ALL
+  startTimeout: 300
+  networkPolicy:
+    enabled: false
+  cloudMetadata:
+    blockWithIptables: false
+  
+
+scheduling:
+  userScheduler:
+    enabled: false
+
+prePuller:
+  hook:
+    enabled: false
+  continuous:
+    enabled: false
+
+# singleuser MappingKernel https://jupyter-notebook.readthedocs.io/en/stable/config.html
+# jupyterhub-idle-culler https://github.com/jupyterhub/zero-to-jupyterhub-k8s/blob/main/jupyterhub/values.yaml
+cull:
+  enabled: true
+  users: true
+  timeout: 259200
+  every: 3600
