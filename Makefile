@@ -6,7 +6,7 @@ flags=-ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME
 
 build:
 	docker build -t ${image}:${tag} .
-	docker push ${image}
+	docker push ${image}:${tag}
 
 bash:
 	docker run ${flags} ${image}:${tag} bash
