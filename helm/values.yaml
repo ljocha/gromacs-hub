@@ -53,6 +53,7 @@ hub:
     form-1: blabla
     pre-spawn-hook: blabla
   config:
+    notebookImage: bubububu
 #    Authenticator:
 #      allowed_users:
 #        - ljocha
@@ -125,10 +126,10 @@ singleuser:
   cloudMetadata:
     blockWithIptables: false                                                                     
   startTimeout: 600
-  defaultUrl: "/lab"
+  defaultUrl: "/notebook/gmx-main.ipynb"
   storage:  
     type: "none"
-  cmd: jupyterhub-singleuser 
+  cmd: start-hub.sh
   uid: 1000
   fsGid: 100
   allowPrivilegeEscalation: false
