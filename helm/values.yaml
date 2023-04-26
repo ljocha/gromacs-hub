@@ -54,83 +54,13 @@ hub:
         from tornado import gen
         from kubespawner import KubeSpawner
 
-        class DockerImageChooser(KubeSpawner):
+        class SillySpawner(KubeSpawner):
           form_template = Unicode("""
-          <script>
-          function customImageCheck(that) {{
-            if (that.value == "custom") {{
-              document.getElementById("custom").style.display = "block";
-              }} else {{
-              document.getElementById("custom").style.display = "none";
-            }}
-          }}
-          function customGpuCheck(that) {{
-            if (document.getElementById("gpuid").value != "none") {{
-              document.getElementById("shm").style.display = "block";
-            }} else {{
-              document.getElementById("shm").style.display = "none";
-            }}
-          }}
-          </script>
-          <h3>Image</h3>
-          <p>Select particular image or select custom image.</p>
-          <label for="dockerimage">Select an image:</label>
-          <select class="data-list-input" name="dockerimage" required="required" style="width:190px;" onchange="customImageCheck(this);">
-                <option value="cerit.io/hubs/minimalnb:13-01-2023">Minimal NB</option>
-                <option value="cerit.io/hubs/datasciencenb:13-01-2023">Datascience NB</option>
-                <option value="cerit.io/hubs/scipynb:13-01-2023">Scipy NB</option>
-                <option value="cerit.io/hubs/tensorflowgpu-11-0:14-02-2022-1">TensorFlow 2.7.0 with GPU and TensorBoard</option>
-                <option value="cerit.io/hubs/tensorflowgpu:2.11.1">TensorFlow 2.11.1 with GPU and TensorBoard</option>
-                <option value="cerit.io/hubs/rationai:edge-user">RationAI with GPU and TF,TB</option>
-                <option value="custom">Custom</option>
-          </select>
-
-          <div id="custom" style="display: none;">
-          <label for="customimage">Custom image name:</label> <input type="text" id="customimage" name="customimage">
-          </div>         
-
           <h3>Home</h3>
           <div id="phomeDiv" style="display: block;">
           <input type="checkbox" id="delhome" name="delhome" value="delete">
           <label for="delhome">Erase if home exists</label><br/>
           <p style="background-color:orange;">Take care of checking this button, it removes whole home directory and previous data will be lost. Use in case only when notebook is broken so it does not start, in other cases, remove data from terminal.</p>
-          </div>
-
-          <h3>Storage - PVC</h3>
-          <div id="pvcnames" style="display: block;">
-            <label for="pvcid">Select additional PVCs connect to <code>/mnt/data</code>:</label>
-            <select class="form-control" name="pvcname" id="pvcid" autofocus>
-              {option_template}
-            </select>
-          </div>
-
-          <h3>Resources</h3>
-          <h4>CPU</h4>
-          <p>By default, 1 CPU is assigned to notebooks.</p>
-          <label for="cpuselection">Select number of CPU (1-40):</label> <input type="number" id="cpuselection" name="cpuselection" min="1" max="40" value="1">
-
-          <h4>Memory</h4>
-          <p>Please choose upper memory limit (in GB) which will be assigned to notebook (default 4):</p>
-          <select class="data-list-input" name="memselection" style="width:190px;">
-                <option value="4">4</option>
-                <option value="8">8</option>
-                <option value="12">12</option>
-                <option value="16">16</option>
-                <option value="32">32</option>
-                <option value="64">64</option>
-                <option value="128">128</option>
-                <option value="192">192</option>
-          </select>
-
-          <h4>GPU</h4>
-          <label for="gpuselection">By default, no GPU is assigned. Would you like to use GPU?</label>
-          <select class="data-list-input" name="gpuselection" id="gpuid" required="required" style="width:190px;" onchange="customGpuCheck(this);">
-              <option value="none">No</option>
-              <option value="any">Yes</option>
-          </select>
-
-          <div id="shm" style="display: none;">
-            <label for="shmsize">Select shared memory size (in GB):</label> <input type="number" id="shmsize" name="shmsize" min="1" max="8" value="1">
           </div>
           """,)
 
@@ -141,43 +71,10 @@ hub:
 
             
           async def get_options_form(self):
-            #pvcs_raw = await self.api.list_namespaced_persistent_volume_claim(namespace="research-aicope",watch=False)
-            pvcs_raw = await self.api.list_namespaced_persistent_volume_claim(namespace="krenek-ns",watch=False)
-            await asyncio.sleep(3)
-            pvcs = ['none']  
-            for pvc in pvcs_raw.items:
-              if pvc.metadata.name.startswith("pvc"):
-                pvcs.append(pvc.metadata.name)
-
-            options = ''.join([ self.option_template.format(item=p) for p in pvcs ])
-
-            return self.form_template.format(option_template=options)
+            return self.form_template
                                                                                 
-          def options_from_form(self, formdata):                                
-            """Parse the submitted form data and turn it into the correct       
-               structures for self.user_options."""                                                                                                            
-            options = {}                                                        
-            options['cpu'] = formdata.get('cpuselection')[0]
-            mem = formdata.get('memselection')[0]
-            if mem:
-              options['mem'] = mem
-            else:
-              options['mem'] = "2"
-            options['gpu'] = formdata.get('gpuselection')[0]
-            if formdata.get('delhome'):
-              options['delhome'] = formdata.get('delhome')[0]
-            dockerimage = formdata.get('dockerimage')[0]
-            if dockerimage == "custom":
-                dockerimage = formdata.get('customimage')[0]
-                options['custom'] = True
-            options['container_image'] = dockerimage
-            if options['gpu'] != "none":
-              options['shmsize'] = formdata.get('shmsize')[0]
-            if formdata.get('pvcname')[0] != "none":
-              options['pvc'] = formdata.get('pvcname')[0]
-            return options
     form-1: |
-      c.JupyterHub.spawner_class = DockerImageChooser
+      c.JupyterHub.spawner_class = SillySpawner
       c.MappingKernelManager.cull_idle_timeout = 259200
       c.MappingKernelManager.cull_connected = False
       c.MappingKernelManager.cull_busy = False
@@ -268,18 +165,6 @@ hub:
           else:
               add_volume(spawner.volume_mounts, volume_mount, pvc)
 
-      def mount_shm(spawner):
-          volume = {"name": "dshm",
-                    "emptyDir": {"medium": "Memory", "sizeLimit": spawner.user_options.get('shmsize', '1')+'G'}}
-          volume_mount = {"mountPath": "/dev/shm", "name": "dshm"}
-          volume_exists = False
-          for vol in spawner.volumes:
-              if "name" in vol and vol["name"] == "dshm":
-                  volume_exists = True
-          if not volume_exists:
-              spawner.volumes.append(volume)
-              spawner.volume_mounts.append(volume_mount)
-
       async def mount_persistent_hub_home(spawner, username, namespace):
           hub_home_name = username + "-home-default"
 
@@ -306,8 +191,6 @@ hub:
         if "_" in username:
             username = username.replace("_", "-5f")
 
-        #spawner.environment = {"JUPYTERHUB_API_URL": "http://hub.research-aicope.svc.cluster.local:8081/hub/api",
-        #                       "JUPYTERHUB_ACTIVITY_URL": "http://hub.research-aicope.svc.cluster.local:8081/hub/api/users/"+username+"/activity"}
         spawner.environment = {"JUPYTERHUB_API_URL": "http://hub.krenek-ns.svc.cluster.local:8081/hub/api",
                                "JUPYTERHUB_ACTIVITY_URL": "http://hub.krenek-ns.svc.cluster.local:8081/hub/api/users/"+username+"/activity"}
 
@@ -321,33 +204,11 @@ hub:
         mem = spawner.user_options.get('mem')
         image = spawner.user_options.get('container_image')
 
-        spawner.image = image
-        spawner.cpu_limit = float(cpu)
-        spawner.cpu_guarantee = float(cpu)
-        spawner.mem_limit = mem + 'G'
-        spawner.mem_guarantee = mem + 'G'
-
-        if gpu is None:
-           gpu = ""
-        else:
-           mount_shm(spawner)
-
-        if spawner.user_options.get('pvc'):
-           mount(spawner, "data", spawner.user_options.get('pvc'), "/mnt/data")
-        
-        if gpu.startswith("mig"):
-           spawner.extra_resource_limits = {"nvidia.com/"+gpu: 1}
-        elif gpu == "a40":
-           spawner.node_selector = {"nvidia.com/gpu.product": "NVIDIA-A40"}
-           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
-        elif gpu == "a10":
-           spawner.node_selector = {"nvidia.com/gpu.product": "NVIDIA-A10"}
-           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
-        elif gpu == "a100":
-           spawner.node_selector = {"nvidia.com/gpu.product": "NVIDIA-A100"}
-           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
-        elif gpu == "any":
-           spawner.extra_resource_limits = {"nvidia.com/gpu": 1}
+        spawner.image = 'ljocha/gromacs-hub'
+        spawner.cpu_limit = 1.
+        spawner.cpu_guarantee = .2
+        spawner.mem_limit = '8G'
+        spawner.mem_guarantee = '4G'
 
       c.KubeSpawner.pre_spawn_hook = bootstrap_pre_spawn
       c.KubeSpawner.enable_user_namespaces = False
