@@ -1,4 +1,4 @@
-image=ljocha/gromacs-hub:2023-2
+image=ljocha/gromacs-hub:2023-3
 port=8055
 
 flags=-ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work

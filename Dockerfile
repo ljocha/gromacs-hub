@@ -18,6 +18,7 @@ RUN . /opt/gmx/bin/activate && pip3 install ipywidgets
 # RUN . /opt/gmx/bin/activate && pip3 install jupyterhub 
 
 
-COPY gmx-main.ipynb /home/jovyan
+COPY gmx-main.ipynb /opt/gmx/lib
 
+WORKDIR /home/jovyan
 ENV HOME /home/jovyan
