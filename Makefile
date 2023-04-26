@@ -1,5 +1,5 @@
 image=ljocha/gromacs-hub
-tag=2023-1
+tag=2023-2
 
 port=8055
 
@@ -7,6 +7,7 @@ flags=-ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME
 
 build:
 	docker build -t ${image}:${tag} .
+	docker push ${image}
 
 bash:
 	docker run ${flags} ${image}:${tag} bash
