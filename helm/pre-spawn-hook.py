@@ -121,7 +121,8 @@ async def bootstrap_pre_spawn(spawner):
   mem = spawner.user_options.get('mem')
   image = spawner.user_options.get('container_image')
 
-  spawner.image = 'ljocha/gromacs-hub'
+#  spawner.image = 'ljocha/gromacs-hub'
+  spawner.image = get_config('hub.config.notebookImage')
   spawner.cpu_limit = 1.
   spawner.cpu_guarantee = .2
   spawner.mem_limit = '8G'
