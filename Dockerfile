@@ -27,6 +27,6 @@ WORKDIR /home/jovyan
 ENV HOME /home/jovyan
 
 USER 0
-RUN apt update && apt install -y strace
+RUN apt update && apt install -y vim
 
 USER 1000

@@ -1,5 +1,5 @@
 image=ljocha/gromacs-hub
-tag=2023-9
+tag=2023-10
 port=8055
 
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
