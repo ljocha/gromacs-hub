@@ -25,3 +25,8 @@ COPY gmx-main.ipynb /opt/gmx/lib
 
 WORKDIR /home/jovyan
 ENV HOME /home/jovyan
+
+USER 0
+RUN apt update && apt install -y strace
+
+USER 1000
