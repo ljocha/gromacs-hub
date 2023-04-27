@@ -1,5 +1,5 @@
 image=ljocha/gromacs-hub
-tag=2023-7
+tag=2023-8
 port=8055
 
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
@@ -12,10 +12,10 @@ bash:
 	docker run ${flags} ${image}:${tag} bash
 
 ntb:
-	docker run ${flags} ${image}:${tag} bash -c ". /opt/gmx/bin/activate; jupyter notebook --ip 0.0.0.0 --port ${port}"
+	docker run ${flags} ${image}:${tag} bash -c ". /opt/gmx/bin/activate; jupyter notebook --ip 0.0.0.0 --port ${port} --VoilaConfiguration.file_whitelist='.*'"
 
 voila:
-	docker run ${flags} ${image}:${tag} bash -c ". /opt/gmx/bin/activate; voila /opt/gmx/lib/gmx-main.ipynb --Voila.ip 0.0.0.0 --port ${port}"
+	docker run ${flags} ${image}:${tag} bash -c ". /opt/gmx/bin/activate; voila /opt/gmx/lib/gmx-main.ipynb --Voila.ip 0.0.0.0 --port ${port} --VoilaConfiguration.file_whitelist=\"['.*']\""
 
 
 install:
