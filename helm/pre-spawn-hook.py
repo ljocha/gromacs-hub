@@ -113,12 +113,6 @@ async def bootstrap_pre_spawn(spawner):
 
   await mount_persistent_hub_home(spawner, username, namespace)
 
-#  if "--SingleUserNotebookApp.max_body_size=6291456000" not in spawner.args:
-#          spawner.args.append("--SingleUserNotebookApp.max_body_size=6291456000")
-#
-#  if "--ip=0.0.0.0" not in spawner.args:
-#          spawner.args.append("--ip=0.0.0.0")
-  spawner.args.append("--debug")
   spawner.args.append(f"--base_url=/user/{username}/")
 
 #  gpu = spawner.user_options.get('gpu')
