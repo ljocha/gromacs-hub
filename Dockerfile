@@ -13,10 +13,12 @@ USER 1000
 RUN python3 -m venv /opt/gmx
 
 
-RUN . /opt/gmx/bin/activate && pip3 install voila notebook 
+RUN . /opt/gmx/bin/activate && pip3 install notebook 
 RUN . /opt/gmx/bin/activate && pip3 install 'ipywidgets<8'
 # RUN . /opt/gmx/bin/activate && pip3 install jupyterhub 
 RUN . /opt/gmx/bin/activate && pip3 install nglview mdtraj 
+
+RUN . /opt/gmx/bin/activate && pip3 install voila
 
 
 COPY gmx-main.ipynb /opt/gmx/lib
