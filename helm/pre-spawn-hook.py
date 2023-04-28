@@ -133,3 +133,5 @@ async def bootstrap_pre_spawn(spawner):
 
 c.KubeSpawner.pre_spawn_hook = bootstrap_pre_spawn
 c.KubeSpawner.enable_user_namespaces = False
+c.KubeSpawner.user_namespace_template = "jupyterhub-f{username}-prod-ns"
+c.KubeSpawner.automount_service_account_token = True
