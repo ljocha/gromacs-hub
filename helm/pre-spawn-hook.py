@@ -113,7 +113,11 @@ async def bootstrap_pre_spawn(spawner):
 
   await mount_persistent_hub_home(spawner, username, namespace)
 
-  spawner.args.append(f"--base_url=/user/{username}/")
+  if spawner.cmd[1] == 'voila':
+    spawner.args += [ '/opt/gmx/lib/gmx-main.ipynb', '--no-browser', '--port=8888', '--Voila.ip=0.0.0.0', '--VoilaConfiguration.file_whitelist=.*', '--debug', f"--base_url=/user/{username}/" ]
+  else:
+    spawner.args += [ '--port=8888', '--ip=0.0.0.0', f'--NotebookApp.base_url=/user/{username}/' ]
+
 
 #  gpu = spawner.user_options.get('gpu')
 #  cpu = spawner.user_options.get('cpu')
