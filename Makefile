@@ -1,5 +1,6 @@
 image=ljocha/gromacs-hub
 tag=2023-10
+ns=gmxhub-ns
 port=8055
 
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
@@ -19,7 +20,7 @@ voila:
 
 
 install:
-	helm install gromacs-hub -n krenek-ns jupyterhub/jupyterhub -f helm/values.yaml \
+	helm install gromacs-hub -n ${ns} jupyterhub/jupyterhub -f helm/values.yaml \
 		--set hub.config.GenericOAuthenticator.client_secret=${shell cat helm/client_secret} \
  		--set hub.config.notebookImage=${image}:${tag} \
 		--set-file hub.extraConfig.form-0=helm/form-0.py\
@@ -27,7 +28,7 @@ install:
 		--set-file hub.extraConfig.pre-spawn-hook=helm/pre-spawn-hook.py
 
 uninstall:
-	helm uninstall gromacs-hub -n krenek-ns
+	helm uninstall gromacs-hub -n ${ns}
 
 repo:
 	helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/
