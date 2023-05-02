@@ -1,13 +1,21 @@
 image=ljocha/gromacs-hub
-tag=2023-10
+tag=2023-11
 ns=gmxhub-ns
 port=8055
 
+gmx_dir=../ASMSA/src/asmsa
+
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
 
-build:
+
+build: dist/gmx-0.0.1.tar.gz
 	docker build -t ${image}:${tag} .
 	docker push ${image}:${tag}
+
+build-gmx:
+	mkdir -p src/gmx
+	cp ${gmx_dir}/gmx.py src/gmx
+	python -m build
 
 bash:
 	docker run ${flags} ${image}:${tag} bash
