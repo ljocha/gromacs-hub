@@ -27,6 +27,9 @@ WORKDIR /home/jovyan
 ENV HOME /home/jovyan
 
 USER 0
-RUN apt update && apt install -y vim
+RUN apt update && apt install -y vim curl && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && install -m 755 kubectl /usr/local/bin && apt clean && rm -rf /var/lib/apt/lists/*
 
 USER 1000
+
+COPY dist/gmx-0.0.1.tar.gz /tmp
+RUN . /opt/gmx/bin/activate && pip3 install /tmp/gmx-0.0.1.tar.gz
