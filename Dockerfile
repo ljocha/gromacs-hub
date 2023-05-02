@@ -21,7 +21,8 @@ RUN . /opt/gmx/bin/activate && pip3 install nglview mdtraj
 RUN . /opt/gmx/bin/activate && pip3 install 'voila<0.4.0'
 RUN . /opt/gmx/bin/activate && jupyter serverextension enable voila --sys-prefix
 
-COPY gmx-main.ipynb /opt/gmx/lib
+RUN mkdir /opt/gmx/home
+COPY gmx-main.ipynb ions.mdp minim-sol.mdp /opt/gmx/home
 
 WORKDIR /home/jovyan
 ENV HOME /home/jovyan
