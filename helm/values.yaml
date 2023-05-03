@@ -35,7 +35,7 @@ ingress:
 hub:
   serviceAccount:
     create: false
-    name: default
+    name: hub
 
   #allowNamedServers: true
   containerSecurityContext:
@@ -131,9 +131,9 @@ singleuser:
     type: "none"
   cmd: 
     - start-hub.sh
-    - jupyter
-    - notebook 
-#    - voila
+#    - jupyter
+#    - notebook 
+    - voila
   uid: 1000
   fsGid: 100
   allowPrivilegeEscalation: false
