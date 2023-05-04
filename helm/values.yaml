@@ -72,7 +72,7 @@ hub:
 #      userdata_url: https://login.cloud.e-infra.cz/userinfo
 #      oauth_callback_url: https://gromacs-hub.dyn.cloud.e-infra.cz/hub/oauth_callback
       client_id: f408e904-6eb7-4398-b9b6-26c97c5c3295
-      client_secret: a6cd66e9-30ff-4ab8-8643-af1b0df51a8f810d5def-43ec-4920-b21d-db21e1584dcf
+      client_secret: blabla
       userdata_params:
         state: state
       scope:

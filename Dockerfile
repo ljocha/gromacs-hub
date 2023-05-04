@@ -4,7 +4,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt update && apt install -y --no-install-recommends python3-dev python3-venv g++ && apt clean && rm -rf /var/lib/apt/lists/*
 
-COPY start-hub.sh /usr/local/bin
 RUN mkdir /opt/gmx && chown 1000 /opt/gmx
 RUN mkdir /home/jovyan && chown 1000 /home/jovyan
 
@@ -29,6 +28,7 @@ ENV HOME /home/jovyan
 
 USER 0
 RUN apt update && apt install -y vim curl && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" && install -m 755 kubectl /usr/local/bin && apt clean && rm -rf /var/lib/apt/lists/*
+COPY start-hub.sh start-devel.sh /usr/local/bin
 
 USER 1000
 
