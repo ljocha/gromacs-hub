@@ -196,8 +196,9 @@ async def check_rb(namespace):
 
 
 async def create_rb(sa_name, namespace):
-    exists = await check_rb(namespace)
-    if not exists:
+#    exists = await check_rb(namespace)
+#    if not exists:
+  try:
         rb = V1RoleBinding(role_ref=V1RoleRef(api_group="rbac.authorization.k8s.io", kind="ClusterRole",
                                               name="hub-resources-access"))
         rb.metadata = V1ObjectMeta(name="hub-resources-access-binding", namespace=namespace)
@@ -206,6 +207,9 @@ async def create_rb(sa_name, namespace):
             v1 = kubernetes_asyncio.client.RbacAuthorizationV1Api(api_client)
             await v1.create_namespaced_role_binding(namespace=namespace, body=rb)
             await asyncio.sleep(1)
+  except kubernetes_asyncio.client.exceptions.ApiException as e:
+      pass # buzz off
+		
 
 
 async def bootstrap_pre_spawn(spawner):
@@ -225,7 +229,7 @@ async def bootstrap_pre_spawn(spawner):
   ns = await create_ns(username, original)
 #  await create_netpolicy(username)
   sa = await create_sa(username, ns)
-#  await create_rb(sa, ns)
+  await create_rb(sa, ns)
 
 
 #  await mount_persistent_hub_home(spawner, username, namespace)
@@ -256,3 +260,4 @@ c.KubeSpawner.user_namespace_template = nsprefix + "{username}" + nssuffix
 #c.KubeSpawner.enable_user_namespaces = False
 #c.KubeSpawner.user_namespace_template = "jupyterhub-{username}-prod-ns"
 c.KubeSpawner.automount_service_account_token = True
+c.KubeSpawner.service_account = "sa-{username}"

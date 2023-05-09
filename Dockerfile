@@ -21,7 +21,7 @@ RUN . /opt/gmx/bin/activate && pip3 install 'voila<0.4.0'
 RUN . /opt/gmx/bin/activate && jupyter serverextension enable voila --sys-prefix
 
 RUN mkdir /opt/gmx/home
-COPY gmx-main.ipynb ions.mdp minim-sol.mdp /opt/gmx/home
+COPY gmx-main.ipynb ions.mdp minim-sol.mdp nvt.mdp npt.mdp md.mdp.template /opt/gmx/home
 
 WORKDIR /home/jovyan
 ENV HOME /home/jovyan
@@ -34,3 +34,5 @@ USER 1000
 
 COPY dist/gmx-0.0.1.tar.gz /tmp
 RUN . /opt/gmx/bin/activate && pip3 install /tmp/gmx-0.0.1.tar.gz
+
+RUN . /opt/gmx/bin/activate && pip3 install ipympl && jupyter nbextension install --py --sys-prefix --overwrite ipympl && jupyter nbextension enable --py --sys-prefix ipympl
