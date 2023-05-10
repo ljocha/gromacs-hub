@@ -1,21 +1,19 @@
 image=ljocha/gromacs-hub
-tag=2023-17
+tag=2023-17rf1
 ns=gmxhub-ns
 devns=krenek-ns
 port=8055
 
-gmx_dir=../ASMSA/src/asmsa
-
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
 
+package_name=gmx-0.0.1.tar.gz
+package=dist/${package_name}
 
-build: dist/gmx-0.0.1.tar.gz
+build: ${package}
 	docker build -t ${image}:${tag} .
 	docker push ${image}:${tag}
 
-build-gmx:
-	mkdir -p src/gmx
-	cp ${gmx_dir}/gmx.py src/gmx
+${package} build-gmx:
 	python -m build
 
 bash:
@@ -39,6 +37,8 @@ install:
 uninstall:
 	helm uninstall gromacs-hub -n ${ns}
 
+devpod=${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'}
+
 devinstall:
 	kubectl -n ${devns} apply -f k8s-dev/service.yaml
 	kubectl -n ${devns} apply -f k8s-dev/ingress.yaml
@@ -48,13 +48,17 @@ devuninstall:
 	kubectl -n ${devns} delete service/gromacs-portal-dev ingress.networking.k8s.io/gromacs-portal-dev deployment.apps/gromacs-portal-dev 
 
 devbash:
-	kubectl -n ${devns} exec -ti pod/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'} -- bash
+	kubectl -n ${devns} exec -ti pod/${devpod} -- bash
 
 devtoken:
-	kubectl -n ${devns} logs pod/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'} | grep token=
+	kubectl -n ${devns} logs pod/${devpod} | grep token=
 
 devntb:
-	kubectl cp ${devns}/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'}:/home/jovyan/gmx-main.ipynb gmx-main.ipynb
+	kubectl cp ${devns}/${devpod}:/home/jovyan/gmx-main.ipynb gmx-main.ipynb
+
+devdeploy: ${package}
+	kubectl cp ${package} ${devns}/${devpod}:/var/tmp/${package_name}
+	kubectl exec -n ${devns} ${devpod} -- bash -c ". /opt/gmx/bin/activate && pip install /var/tmp/${package_name}"
 
 devputgmx:
 	kubectl cp src/gmx/gmx.py ${devns}/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'}:/opt/gmx/lib/python3.10/site-packages/gmx/gmx.py
