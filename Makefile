@@ -14,7 +14,7 @@ build: ${package}
 	docker push ${image}:${tag}
 
 ${package} build-gmx:
-	python -m build
+	python3 -m build
 
 bash:
 	docker run ${flags} ${image}:${tag} bash
