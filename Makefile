@@ -6,7 +6,8 @@ port=8055
 
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
 
-package_name=gmx-0.0.1.tar.gz
+#package_name=gmx-0.0.1.tar.gz
+package_name=gmx-0.0.1-py3-none-any.whl
 package=dist/${package_name}
 
 build: ${package}
@@ -58,7 +59,7 @@ devntb:
 
 devdeploy: ${package}
 	kubectl cp ${package} ${devns}/${devpod}:/var/tmp/${package_name}
-	kubectl exec -n ${devns} ${devpod} -- bash -c ". /opt/gmx/bin/activate && pip install /var/tmp/${package_name}"
+	kubectl exec -n ${devns} ${devpod} -- bash -c ". /opt/gmx/bin/activate && pip uninstall -y gmx && pip install /var/tmp/${package_name}"
 
 devputgmx:
 	kubectl cp src/gmx/gmx.py ${devns}/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'}:/opt/gmx/lib/python3.10/site-packages/gmx/gmx.py

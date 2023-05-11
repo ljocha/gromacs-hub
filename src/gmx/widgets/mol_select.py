@@ -53,3 +53,8 @@ class MolSelect(w.HBox):
 		self.chooser = MolChooser(main)
 		self.upload = MolUpload(main)
 		self.children = [ self.chooser, w.Label('or'), self.upload ]
+
+	def cwd(self):
+		if self.chooser.value == 'none':
+			return None
+		return self.chooser.value + '.dir'
