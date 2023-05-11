@@ -11,6 +11,10 @@ class MolChooser(w.Dropdown):
 		self.options = [ d.replace('.dir','') for d in dirs ] + [ 'none' ]
 		self.value = 'none'
 		self.main = main
+		self.observe(lambda e: self._new_value(e),'value')
+
+	def _new_value(self,e):
+		self.main.view.show_pdb(self.value)
 
 	def add_dir(self,base):
 		# XXX
