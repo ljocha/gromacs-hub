@@ -11,7 +11,7 @@ class MolChooser(w.Dropdown):
 		self.options = [ d.replace('.dir','') for d in dirs ] + [ 'none' ]
 		self.value = 'none'
 		self.main = main
-		self.observe(lambda e: self._new_value(e),'value')
+		self.observe(self._new_value,'value')
 
 	def _new_value(self,e):
 		self.main.view.show_pdb(self.value)
@@ -27,7 +27,7 @@ class MolUpload(w.FileUpload):
 	def __init__(self,main):
 		super().__init__(accept = 'pdb',multiple = False,description='Upload new')
 		self.main = main
-		self.observe(lambda e: self._uploaded(e),'_counter')
+		self.observe(self._uploaded,'_counter')
 
 	def _uploaded(self,event):
 		fname = list(self.value.keys())[0]

@@ -18,8 +18,8 @@ class MolView(w.HBox):
 			])
 		]
 
-		self.licorice.observe(lambda e: self._change_representation(e),'value')
-		self.cartoon.observe(lambda e: self._change_representation(e),'value')
+		self.licorice.observe(self._change_representation,'value')
+		self.cartoon.observe(self._change_representation,'value')
 
 	def _change_representation(self,e):
 		self.v.clear()

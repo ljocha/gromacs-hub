@@ -7,20 +7,20 @@ class Diag(w.VBox):
 		self.main = main
 	
 		self.jobrefresh = w.Button(description='Refresh list')
-		self.jobrefresh.on_click(lambda e: self._listjobs(e))
+		self.jobrefresh.on_click(self._listjobs)
 		self.jobchoose = w.Dropdown()
-		self.jobchoose.observe(lambda e: self._choosejob(e),'value')
+		self.jobchoose.observe(self._choosejob,'value')
 		self.jobout = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
 		self.purge = w.Button(description='Purge gmx jobs',button_style='danger')
-		self.purge.on_click(lambda e: self._purgejobs(e))
+		self.purge.on_click(self._purgejobs)
 		self.dirls = w.Button(description='Refresh')
-		self.dirls.on_click(lambda e: self._dirls(e))
+		self.dirls.on_click(self._dirls)
 		self.dir = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
 		self.dirls = w.Button(description='Refresh')
-		self.dirls.on_click(lambda e: self._dirls(e))
+		self.dirls.on_click(self._dirls)
 		self.dir = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
 		self.purgedir = w.Button(description='Purge backup files',button_style='danger')
-		self.purgedir.on_click(lambda e: self._purgedir(e))
+		self.purgedir.on_click(self._purgedir)
 
 		self.children = [
 			w.Label('Choose job'),
