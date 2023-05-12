@@ -8,7 +8,7 @@ class Ctrl(w.Tab):
 		self.warmup = gw.Warmup(main)
 		self.diag = gw.Diag(main)
 		self.bias = w.Label('TODO')
-		self.md = w.Label('TODO')
+		self.md = gw.MD(main)
 		self.children = [self.warmup, self.bias, self.md, self.diag]
 		self.set_title(0,'Prepare molecule')
 		self.set_title(1,'Bias potential')

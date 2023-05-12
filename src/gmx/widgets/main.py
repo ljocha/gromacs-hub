@@ -13,6 +13,7 @@ class Main(w.VBox):
 		self.msg = None
 
 		self.gpus = 1
+		self.cores = 4
 
 		# XXX
 		mnt=os.popen('mount | grep /home/jovyan').read()
@@ -20,5 +21,5 @@ class Main(w.VBox):
 		self.pvc=os.popen(f'kubectl get pvc | grep {pvcid} | cut -f1 -d" "').read().rstrip()
 
 	def build(self):
-		children = [ self.select, self.status, self.view, self.ctrl, self.msg ]
+		children = [ self.select, self.status, self.view, self.ctrl, w.Label('Error output'), self.msg ]
 		self.children = [ c for c in children if c is not None ]
