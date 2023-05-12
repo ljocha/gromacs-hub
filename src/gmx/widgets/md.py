@@ -118,7 +118,8 @@ class MD(w.VBox):
 		self.trload.disabled = True
 		odesc = self.trload.description
 		self.trload.description = 'loading trajectory'
-		gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
+		pwd = self.main.select.cwd()
+		gmx = GMX(workdir=pwd,pvc=self.main.pvc)
 		gmx.start("trjconv -f md.xtc -s npt.gro -pbc nojump -o pbc.xtc",input=1)
 		while True:
 			stat = gmx.status()
@@ -133,7 +134,7 @@ class MD(w.VBox):
 				return
 			time.sleep(2)
 	
-		tr = md.load_xtc('pbc.xtc',top='mol.gro')
+		tr = md.load_xtc(f'{pwd}/pbc.xtc',top=f'{pwd}/mol.gro')
 		idx=tr[0].top.select("name CA")
 		tr.superpose(tr[0],atom_indices=idx)
 		self.main.view.show_trajectory(tr)
