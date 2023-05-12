@@ -12,6 +12,8 @@ class Main(w.VBox):
 		self.ctrl = None
 		self.msg = None
 
+		self.gpus = 1
+
 		# XXX
 		mnt=os.popen('mount | grep /home/jovyan').read()
 		pvcid=re.search('pvc-[0-9a-z-]+',mnt).group(0)

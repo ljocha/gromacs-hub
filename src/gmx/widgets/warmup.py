@@ -1,6 +1,7 @@
 import ipywidgets as w
 from gmx.wrapper import GMX
 import os
+import re
 
 class Warmup(w.VBox):
 	def __init__(self,main,**kwargs):
@@ -8,13 +9,7 @@ class Warmup(w.VBox):
 		self.main = main
 
 		self.startbutton = w.Button(description='Start')
-		self.children = [ w.Label("TODO: params"), self.startbutton ]
 
-
-		self.startbutton.on_click(lambda e: self.main.status.start('pdb2gmx',self))
-
-
-	def start(self,what):
 		mdbox = 2.0
 		self.simple_cmds = {
 			"pdb2gmx": "pdb2gmx -f orig.pdb -o mol.gro -p mol.top -water tip3p -ff amber94 -ignh",
@@ -24,7 +19,46 @@ class Warmup(w.VBox):
 			"genion": ("genion -s ions.tpr -o ions.gro -p mol.top -pname NA -nname CL -neutral","13"),
 		}
 
-		self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
+		self.mdruns = {
+			"minimize" : (
+				"grompp -f ../minim-sol.mdp -c ions.gro -p mol.top -o em.tpr",
+				"mdrun -v -deffnm em -pin on",
+				"em.log", 1000	# XXX: same as .mdp
+				),
+			"nvt" : (
+				"grompp -f ../nvt.mdp -c em.gro -r em.gro -p mol.top -o nvt.tpr",
+				"mdrun -v -deffnm nvt -pin on",
+				"nvt.log", 50000
+			),
+			"npt" : (
+				"grompp -f ../npt.mdp -c nvt.gro -r nvt.gro -t nvt.cpt -p mol.top -o npt.tpr",
+				"mdrun -v -deffnm npt -pin on",
+				"npt.log", 50000
+			)
+		}
+
+		self.initprep = { k : w.Checkbox(description=k,value=False,disabled=True) for k in self.simple_cmds.keys() }
+		self.mdprog = { k : w.FloatProgress(value=0., min=0., max=1., description=k, orientation='horizontal') for k in self.mdruns.keys() }
+
+		self.children = [
+			w.Label("TODO: params"),
+			self.startbutton,
+			w.Label('Progress'),
+			w.HBox(list(self.initprep.values())),
+			w.HBox(list(self.mdprog.values())),
+		]
+
+
+		self.startbutton.on_click(lambda e: self.main.status.start('pdb2gmx',self))
+
+	def start(self,what):
+		if what == 'pdb2gmx':
+			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
+			for c in self.initprep.values():
+				c.value = False
+			for p in self.mdprog.values():
+				p.value = 0.
+			self.mdpp = True
 
 		if what in self.simple_cmds:
 			if isinstance(self.simple_cmds[what],tuple):
@@ -32,8 +66,19 @@ class Warmup(w.VBox):
 			else:
 				self.gmx.start(self.simple_cmds[what])
 
+		if what in self.mdruns:
+			if self.mdpp:
+				self.gmx.start(self.mdruns[what][0])
+			else:
+				try:
+					os.remove(f"{self.main.select.cwd()}/{self.mdruns[what][2]}")
+				except FileNotFoundError:
+					pass
+
+				self.gmx.start(self.mdruns[what][1],gpus=self.main.gpus)
+
 	def started(self,what):
-		if what in self.simple_cmds:
+#		if what in self.simple_cmds:
 			stat = self.gmx.status()
 			
 			if not stat.failed:
@@ -41,24 +86,61 @@ class Warmup(w.VBox):
 			else:
 				log = self.gmx.log()
 				self.main.msg.value = log
+				self.gmx.delete()
 				return 'error'
 
 	def finished(self,what):
 		stat = self.gmx.status()
 		if stat.succeeded:
-			cmds = self.simple_cmds.keys()
-			for i,c in enumerate(cmds):
-				if c == what: break
+			self.gmx.delete()
+			if what in self.simple_cmds:
+				self.initprep[what].value = True
+				cmds = self.simple_cmds.keys()
+				for i,c in enumerate(cmds):
+					if c == what: break
+	
+				if i < len(cmds)-1:
+					return 'start',list(cmds)[i+1]
+				else:
+					return 'start','minimize'
 
-			if i < len(cmds)-1:
-				return 'start',list(cmds)[i+1]
-			else:
-				return 'idle',None
-
+			if what in self.mdruns:
+				cmds = self.mdruns.keys()
+				for i,c in enumerate(cmds):
+					if c == what: break
+	
+				if self.mdpp:
+					self.mdpp = False
+					return 'start',what
+				else:
+					self.mdprog[what].value = 1.
+					self.mdpp = True
+					if i < len(cmds)-1:
+						return 'start',list(cmds)[i+1]
+					else:
+						return 'idle',None
+		
 		else:
 			if stat.failed:
 				log = self.gmx.log()
 				self.main.msg.value = log
+				self.gmx.delete()
 				return 'error',what
 			else:
+				if not self.mdpp:
+					s = 0.
+					try:
+						with open(f"{self.main.select.cwd()}/{self.mdruns[what][2]}") as log:
+							lines = log.readlines()
+							for l in reversed(lines):
+								if re.match('\s+Step\s+Time',l):
+									s = float(re.match('\s+(\d+)\s+',prev).group(1))
+									break
+								prev = l
+					except FileNotFoundError:
+						pass
+	
+					self.mdprog[what].value = s / self.mdruns[what][3]
+		
+
 				return 'running',what
