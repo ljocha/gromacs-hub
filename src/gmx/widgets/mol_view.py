@@ -6,7 +6,7 @@ class MolView(w.HBox):
 		super().__init__(**kwargs)
 
 		self.main = main
-		self.v = nv.NGLWidget()
+		self.v = nv.NGLWidget(layout=w.Layout(width='30%'))
 		self.component = None
 		self.licorice = w.Checkbox(description='Licorice',value=False)
 		self.cartoon = w.Checkbox(description='Cartoon',value=True)
@@ -40,3 +40,14 @@ class MolView(w.HBox):
 			self.cartoon.value = True
 		except Exception: # XXX
 			pass
+
+	def show_trajectory(self,tr):
+		if self.component:
+			self.v.remove_component(self.component)
+			self.component = None
+
+		self.v.clear()
+		self.component = self.v.add_trajectory(tr)
+		self.licorice.value = False
+		self.cartoon.value = True
+			

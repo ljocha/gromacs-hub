@@ -95,6 +95,10 @@ spec:
 			self.batchapi.delete_namespaced_job(self.name, self.ns)
 			self.name = None
 		return None
+
+	def kill(self):
+		if self.name:
+			os.system(f"kubectl -n {self.ns} exec job/{self.name} -- kill 1")
 		
 	def log(self, tail=None):
 		out = None
