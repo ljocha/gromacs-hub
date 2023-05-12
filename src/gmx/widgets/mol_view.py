@@ -6,7 +6,9 @@ class MolView(w.HBox):
 		super().__init__(**kwargs)
 
 		self.main = main
-		self.v = nv.NGLWidget(layout=w.Layout(width='30%'))
+		self.v = nv.NGLWidget()
+		self.v.layout.width = '70%'
+		self.v.handle_resize()
 		self.component = None
 		self.licorice = w.Checkbox(description='Licorice',value=False)
 		self.cartoon = w.Checkbox(description='Cartoon',value=True)
