@@ -13,12 +13,25 @@ class Diag(w.VBox):
 		self.jobout = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
 		self.purge = w.Button(description='Purge gmx jobs',button_style='danger')
 		self.purge.on_click(lambda e: self._purgejobs(e))
+		self.dirls = w.Button(description='Refresh')
+		self.dirls.on_click(lambda e: self._dirls(e))
+		self.dir = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
+		self.dirls = w.Button(description='Refresh')
+		self.dirls.on_click(lambda e: self._dirls(e))
+		self.dir = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
+		self.purgedir = w.Button(description='Purge backup files',button_style='danger')
+		self.purgedir.on_click(lambda e: self._purgedir(e))
+
 		self.children = [
 			w.Label('Choose job'),
 			w.HBox([ self.jobrefresh, self.jobchoose ]),
 			w.Label('Job output'),
 			self.jobout,
-			self.purge
+			self.purge,
+			w.Label('Working directory'),
+			self.dirls,
+			self.dir,
+			self.purgedir
 		]
 
 	def _listjobs(self,e):
@@ -28,10 +41,10 @@ class Diag(w.VBox):
 	def _purgejobs(self,e):
 		with os.popen("kubectl get pods | grep gmx-") as f:
 			pods = [ "pod/"+l.split()[0] for l in f ]
-			os.system(f"kubectl delete " + " ".join(pods))
+			os.system(f"kubectl delete {' '.join(pods)} >/dev/null")
 		with os.popen("kubectl get jobs | grep gmx-") as f:
 			pods = [ "job/"+l.split()[0] for l in f ]
-			os.system(f"kubectl delete " + " ".join(pods))
+			os.system(f"kubectl delete {' '.join(pods)} >/dev/null")
 
 	def _choosejob(self,e):
 		if e.new is not None:
@@ -39,3 +52,11 @@ class Diag(w.VBox):
 			with os.popen(f"kubectl logs pod/{pod}") as f:
 				self.jobout.value = "".join(f)
 
+	def _dirls(self,e):
+		with os.popen(f"ls -lt {self.main.select.cwd()}") as f:
+			self.dir.value = "".join(f)
+
+
+	def _purgedir(self,e):
+		os.system(f"rm {self.main.select.cwd()}/\#*\#")
+		self._dirls(None)
