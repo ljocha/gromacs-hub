@@ -1,4 +1,6 @@
 import ipywidgets as w
+import os
+import re
 
 class Main(w.VBox):
 
@@ -8,7 +10,13 @@ class Main(w.VBox):
 		self.view = None
 		self.status = None
 		self.ctrl = None
+		self.msg = None
+
+		# XXX
+		mnt=os.popen('mount | grep /home/jovyan').read()
+		pvcid=re.search('pvc-[0-9a-z-]+',mnt).group(0)
+		self.pvc=os.popen(f'kubectl get pvc | grep {pvcid} | cut -f1 -d" "').read().rstrip()
 
 	def build(self):
-		children = [ self.select, self.status, self.view, self.ctrl ]
+		children = [ self.select, self.status, self.view, self.ctrl, self.msg ]
 		self.children = [ c for c in children if c is not None ]

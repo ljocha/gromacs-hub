@@ -19,7 +19,6 @@ class Status(w.HBox):
 		self.what = None
 		self.who = None
 		self.jobid = None
-		self.main.gmx = GMX(workdir=f'{os.getcwd()}/{self.main.select.cwd()}')
 
 		# TODO: recover status when revisiting the page
 
@@ -45,17 +44,17 @@ class Status(w.HBox):
 
 				if self.stat == 'running':
 					self.showstat.value = 'Running'
-					sleep = 10
+					sleep = 5
 				else:
 					sleep = 2
 
 			elif self.stat == 'running':
 				self.stat,self.what = self.who.finished(self.what)
-				sleep = 10 if self.stat == 'running' else 1
+				sleep = 5 if self.stat == 'running' else 1
 
 			elif self.stat == 'error':
 				if self.showstat.value != 'Error':
-					self.showstat.value == 'Error'
+					self.showstat.value = 'Error'
 				sleep = 1
 					
 
@@ -66,9 +65,10 @@ class Status(w.HBox):
 
 	def start(self,what,who):
 		self.lock.acquire()
-		if self.stat != 'start':
+		if self.stat == 'idle' or self.stat == 'error':
 			self.stat = 'start'
 			self.what = what
 			self.who = who
+			self.main.msg.value = ''
 		
 		self.lock.release()
