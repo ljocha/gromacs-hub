@@ -16,7 +16,7 @@ class GMX:
 		self.batchapi = k8s.client.BatchV1Api()
 		self.coreapi = k8s.client.CoreV1Api()
 
-	def start(self,cmd,input=None,gpus=0,cores=1,mem=4,wait=False,delete=False,tail=10):
+	def start(self,cmd,input=None,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
 		
 		if self.name:
 			raise RuntimeError(f"job {self.name} already running, delete() it first")
@@ -55,11 +55,11 @@ spec:
           requests:
             cpu: '{cores}'
             memory: {mem}Gi
-            nvidia.com/gpu: {gpus}
+            nvidia.com/{gputype}: {gpus}
           limits:
             cpu: '{cores}'
             memory: {mem}Gi
-            nvidia.com/gpu: {gpus}
+            nvidia.com/{gputype}: {gpus}
         volumeMounts:
         - name: vol-1
           mountPath: /mnt
