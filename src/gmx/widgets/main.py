@@ -23,3 +23,13 @@ class Main(w.VBox):
 	def build(self):
 		children = [ self.select, self.status, self.view, self.ctrl, w.Label('Error output'), self.msg ]
 		self.children = [ c for c in children if c is not None ]
+
+	def gather_status(self,stat):
+		for w in self.children:
+			if hasattr(w.__class__,'gather_status'):
+				w.gather_status(stat)
+
+	def restore_status(self,stat):
+		for w in self.children:
+			if hasattr(w.__class__,'restore_status'):
+				w.restore_status(stat)

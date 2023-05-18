@@ -7,6 +7,8 @@ class Warmup(w.VBox):
 	def __init__(self,main,**kwargs):
 		super().__init__(**kwargs)
 		self.main = main
+		self.gmx = None
+		self.mdpp = False
 
 		self.startbutton = w.Button(description='Start')
 
@@ -144,3 +146,35 @@ class Warmup(w.VBox):
 		
 
 				return 'running',what
+
+
+	def gather_status(self,stat):
+		mystat = dict()
+
+		if self.gmx and self.gmx.name:
+			mystat['gmx'] = self.gmx.name
+
+		for k in self.simple_cmds.keys():
+			mystat[k] = self.initprep[k].value
+
+		for k in self.mdruns.keys():
+			mystat[k] = self.mdprog[k].value
+
+		mystat['mdpp'] = self.mdpp
+
+		stat['warmup'] = mystat
+
+	def restore_status(self,stat):
+		mystat = stat['warmup']
+		if 'gmx' in mystat:
+			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
+			self.gmx.name = mystat['gmx']
+		
+		for k in self.simple_cmds.keys():
+			self.initprep[k].value = mystat[k]
+
+		for k in self.mdruns.keys():
+			self.mdprog[k].value = mystat[k] 
+#			print(f'{k}: {mystat[k]}')
+	
+		self.mdpp = mystat['mdpp']
