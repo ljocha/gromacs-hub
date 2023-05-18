@@ -19,7 +19,7 @@ class MolChooser(w.Dropdown):
 	def add_dir(self,base):
 		# XXX
 		if base not in self.options:
-			self.options = sorted(self.options + [base])
+			self.options = sorted(list(self.options) + [base])
 
 		self.value = base
 
