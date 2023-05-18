@@ -27,7 +27,7 @@ WORKDIR /home/jovyan
 ENV HOME /home/jovyan
 
 USER 0
-COPY start-hub.sh start-devel.sh /usr/local/bin
+COPY start-hub.sh start-devel.sh /usr/local/bin/
 
 USER 1000
 
@@ -35,4 +35,4 @@ USER 1000
 COPY dist/gmx-0.0.1.tar.gz /tmp
 RUN . /opt/gmx/bin/activate && pip3 install /tmp/gmx-0.0.1.tar.gz && rm -rf /home/jovyan/.cache
 
-COPY gmx-main.ipynb ions.mdp minim-sol.mdp nvt.mdp npt.mdp md.mdp.template /opt/gmx/home
+COPY gmx-main.ipynb ions.mdp minim-sol.mdp nvt.mdp npt.mdp md.mdp.template /opt/gmx/home/
