@@ -93,14 +93,14 @@ class AFBias(w.VBox):
 				"LAMBDA=1000",
 				f"DISTANCES={','.join(map(str,bins/10.))}"
 			] + [
-				f"LOGIT_MATRIX{k} = {','.join([ str(probs2[i,j,k]) for i in range(ncas) for j in range(ncas) ])}"
+				f"LOGIT_MATRIX{k}={','.join([ str(probs2[i,j,k]) for i in range(ncas) for j in range(ncas) ])}"
 				for k in range(64)
 			] + [
 				"... ALPHA_FOLD",
 #				"PRINT ARG=afscore STRIDE=100 FILE=COLVAR"
 			]
 
-			self.dat.value = '\n'.join(plmd)
+			self.dat.value = '\n'.join(plmd) + '\n'
 			with open(f'{cwd}/af-plumed.dat','w') as p:
 				p.write(self.dat.value)
 		

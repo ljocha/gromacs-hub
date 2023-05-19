@@ -18,9 +18,41 @@ class MD(w.VBox):
 		self.mdprog = w.FloatProgress(value=0.,min=0.,max=1.,description='Progress',orientation='horizontal')
 		self.trload = w.Button(description='Reload trajectory')
 		self.trload.on_click(self._trload)
-		self.children = [ self.nsec, w.HBox([self.startbutton,self.stopbutton]), self.mdprog, self.trload ]
+
+		self.afbias = w.Checkbox(description='Alphafold',value=False)
+		self.children = [ self.nsec, 
+			w.HBox([w.Label('Add bias'), self.afbias ]),
+			w.HBox([self.startbutton,self.stopbutton]),
+			self.mdprog,
+			self.trload
+		]
 
 		self.gmx = None
+
+	def _merge_plumed(self):
+		cwd = self.main.select.cwd()
+		if self.afbias: # XXX or something else
+			tr = md.load(f'{cwd}/npt.gro')
+			natoms = tr.topology.select('protein').shape[0]
+			plmd = [ f"WHOLEMOLECULES ENTITY0=1-{natoms}" ]
+			
+			metad = []
+			if self.afbias:
+				with open(f'{cwd}/af-plumed.dat') as f:
+					plmd += [ l.rstrip() for l in f ]
+				metad.append('afscore')
+
+
+			# XXX: hardcoded 
+			plmd += [
+				f"metad: METAD ARG={','.join(metad)} PACE=1000 HEIGHT=1 BIASFACTOR=15 SIGMA=0.1,0.1 GRID_MIN=-4,-4 GRID_MAX=4,4 FILE=HILLS",
+				f"PRINT FILE=COLVAR ARG={','.join(metad)} STRIDE=100"
+			]
+	
+			with open('{cwd}/plumed.dat','w') as p:
+				p.write('\n'.join(plmd))
+				p.write('\n')
+				
 
 	def start(self,what):
 		self.mdprog.value = 0.
@@ -34,6 +66,12 @@ class MD(w.VBox):
 
 		with open(f"{self.main.select.cwd()}/md.mdp","w") as m:
 			m.write("".join(mdp))
+
+		try:
+			self._merge_plumed()
+		except Exception as e:
+			self.main.msg.value = str(e)
+			return
 		
 		self.gmx.start("grompp -f md.mdp -c npt.gro -t npt.cpt -p mol.top -o md.tpr")
 
@@ -79,7 +117,12 @@ class MD(w.VBox):
 		except FileNotFoundError:
 			pass
 
-		self.gmx.start(f"mdrun -deffnm md -pin on -ntomp {self.main.cores}",gpus=self.main.gpus,cores=self.main.cores)
+		if self.afbias.value:			# TODO or anything else
+			plumed='-plumed plumed.dat'
+		else:
+			plumed=''
+			
+		self.gmx.start(f"mdrun -deffnm md -pin on -ntomp {self.main.cores} {plumed}",gpus=self.main.gpus,cores=self.main.cores)
 
 		while True:
 			stat = self.gmx.status()
