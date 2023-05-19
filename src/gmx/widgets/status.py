@@ -64,19 +64,26 @@ class Status(w.HBox):
 					self.showstat.value = 'Error'
 				sleep = 1
 					
-			savestat = dict()
-			self.main.gather_status(savestat)
-			cwd = self.main.select.cwd()
-			if cwd:
-				with open(f'{cwd}/status.json.new','w') as j:
-					json.dump(savestat,j,indent=2)
-
-				os.rename(f'{cwd}/status.json.new',f'{cwd}/status.json')
-
+			self.savestat()
 			self.lock.release()
 			time.sleep(sleep)
 			
 		self.watching = False
+
+	def savestat(self,lock=False):
+		if lock: self.lock.acquire()
+		savestat = dict()
+		self.main.gather_status(savestat)
+		cwd = self.main.select.cwd()
+		if cwd:
+			with open(f'{cwd}/status.json.new','w') as j:
+				json.dump(savestat,j,indent=2)
+
+			os.rename(f'{cwd}/status.json.new',f'{cwd}/status.json')
+
+		if lock: self.lock.release()
+
+
 
 	def start_watch(self):
 		self.stop = False
