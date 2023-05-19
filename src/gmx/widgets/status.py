@@ -115,6 +115,18 @@ class Status(w.HBox):
 			self.who = self.main.ctrl.warmup
 		elif mystat['who'] == 'MD':
 			self.who = self.main.ctrl.md
+		else:
+			self.who = None
 
 		self.what = mystat['what']
+		self.showphase.value = self.what if self.what else ''
+		self.lock.release()
+
+	def reset_status(self):
+		self.lock.acquire()
+		self.stat = 'idle'
+		self.showstat.value = self.stat[0].upper() + self.stat[1:]
+		self.showphase.value = ''
+		self.who = None
+		self.what = None
 		self.lock.release()

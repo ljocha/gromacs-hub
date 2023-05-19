@@ -178,3 +178,14 @@ class Warmup(w.VBox):
 #			print(f'{k}: {mystat[k]}')
 	
 		self.mdpp = mystat['mdpp']
+
+	def reset_status(self):
+		self.gmx = None
+		
+		for k in self.simple_cmds.keys():
+			self.initprep[k].value = False
+
+		for k in self.mdruns.keys():
+			self.mdprog[k].value = 0.
+	
+		self.mdpp = False

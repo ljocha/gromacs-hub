@@ -33,3 +33,8 @@ class Main(w.VBox):
 		for w in self.children:
 			if hasattr(w.__class__,'restore_status'):
 				w.restore_status(stat)
+
+	def reset_status(self):
+		for w in self.children:
+			if hasattr(w.__class__,'reset_status'):
+				w.reset_status()

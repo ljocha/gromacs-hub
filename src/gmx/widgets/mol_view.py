@@ -62,3 +62,8 @@ class MolView(w.HBox):
 	def restore_status(self,stat):
 		self.cartoon.value = stat['view']['cartoon']
 		self.licorice.value = stat['view']['licorice']
+
+	def reset_status(self):
+		self.cartoon.value = True
+		self.licorice.value = False
+

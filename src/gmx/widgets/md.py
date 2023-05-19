@@ -156,3 +156,8 @@ class MD(w.VBox):
 		if 'gmx' in stat['md']:
 			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
 			self.gmx.name = stat['md']['gmx']
+
+	def reset_status(self):
+		self.nsec.value = 5
+		self.mdprog.value = 0.
+		self.gmx = None
