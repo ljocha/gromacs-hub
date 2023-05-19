@@ -1,7 +1,7 @@
 import ipywidgets as w
 import glob
 import os
-
+import json
 
 class MolChooser(w.Dropdown):
 
@@ -14,7 +14,20 @@ class MolChooser(w.Dropdown):
 		self.observe(self._new_value,'value')
 
 	def _new_value(self,e):
+		self.main.status.stop_watch()
 		self.main.view.show_pdb(self.value)
+		if e.new != 'none':
+			self.main.select.chosen = self.value
+			try:
+				with open(f'{self.main.select.cwd()}/status.json') as j:
+					savestat = json.load(j)
+				self.main.restore_status(savestat)
+			except FileNotFoundError:
+				self.main.reset_status()
+			self.main.status.start_watch()
+		else:
+			self.main.select.chosen = None
+			self.main.reset_status()
 
 	def add_dir(self,base):
 		# XXX
@@ -53,8 +66,9 @@ class MolSelect(w.HBox):
 		self.chooser = MolChooser(main)
 		self.upload = MolUpload(main)
 		self.children = [ self.chooser, w.Label('or'), self.upload ]
+		self.chosen = None
 
 	def cwd(self):
-		if self.chooser.value == 'none':
-			return None
-		return self.chooser.value + '.dir'
+		if self.chosen:
+			return self.chosen + '.dir'
+		return None

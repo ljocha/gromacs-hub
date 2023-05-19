@@ -140,3 +140,24 @@ class MD(w.VBox):
 		self.main.view.show_trajectory(tr)
 		self.trload.description = odesc
 		self.trload.disabled = False
+
+
+	def gather_status(self,stat):
+		stat['md'] = {
+			'nsec' : self.nsec.value,
+			'mdprog' : self.mdprog.value,
+		}
+		if self.gmx and self.gmx.name:
+			stat['md']['gmx'] = self.gmx.name
+
+	def restore_status(self,stat):
+		self.nsec.value = stat['md']['nsec']
+		self.mdprog.value = stat['md']['mdprog']
+		if 'gmx' in stat['md']:
+			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
+			self.gmx.name = stat['md']['gmx']
+
+	def reset_status(self):
+		self.nsec.value = 5
+		self.mdprog.value = 0.
+		self.gmx = None
