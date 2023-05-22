@@ -30,9 +30,12 @@ class Main(w.VBox):
 				w.gather_status(stat)
 
 	def restore_status(self,stat):
-		for w in self.children:
-			if hasattr(w.__class__,'restore_status'):
-				w.restore_status(stat)
+		try:
+			for w in self.children:
+				if hasattr(w.__class__,'restore_status'):
+					w.restore_status(stat)
+		except KeyError as e:
+			self.msg.value = f'Warning: {e}'
 
 	def reset_status(self):
 		for w in self.children:

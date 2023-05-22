@@ -50,7 +50,12 @@ class Diag(w.VBox):
 		if e.new is not None:
 			pod = e.new.split()[0]
 			with os.popen(f"kubectl logs pod/{pod}") as f:
-				self.jobout.value = "".join(f)
+				log = "".join(f)
+			log += "\n\n=======\n\n"
+			with os.popen(f"kubectl describe pod/{pod}") as f:
+				log += "".join(f)
+
+			self.jobout.value = log
 
 	def _dirls(self,e):
 		with os.popen(f"ls -lt {self.main.select.cwd()}") as f:

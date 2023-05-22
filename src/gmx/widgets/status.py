@@ -47,7 +47,9 @@ class Status(w.HBox):
 				sleep = 1
 
 			elif self.stat == 'starting':
-				self.stat = self.who.started(self.what)
+				stat = self.who.started(self.what)
+				self.stat = stat[0] if isinstance(stat,tuple) else stat		# XXX
+					
 
 				if self.stat == 'running':
 					self.showstat.value = 'Running'

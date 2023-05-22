@@ -87,16 +87,16 @@ class AFBias(w.VBox):
 		
 			plmd = [
 #				f"WHOLEMOLECULES ENTITY0=1-{natoms}",
-				"ALPHA_FOLD ...",
+				"AF_DISTPROB ...",
 				"LABEL=afscore",
 			  f"ATOMS={','.join(map(str,atoms))}",
 				"LAMBDA=1000",
 				f"DISTANCES={','.join(map(str,bins/10.))}"
 			] + [
-				f"LOGIT_MATRIX{k}={','.join([ str(probs2[i,j,k]) for i in range(ncas) for j in range(ncas) ])}"
+				f"PROB_MATRIX{k}={','.join([ str(probs2[i,j,k]) for i in range(ncas) for j in range(ncas) ])}"
 				for k in range(64)
 			] + [
-				"... ALPHA_FOLD",
+				"... AF_DISTPROB",
 #				"PRINT ARG=afscore STRIDE=100 FILE=COLVAR"
 			]
 

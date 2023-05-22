@@ -31,13 +31,13 @@ class MD(w.VBox):
 
 	def _merge_plumed(self):
 		cwd = self.main.select.cwd()
-		if self.afbias: # XXX or something else
+		if self.afbias.value: # XXX or something else
 			tr = md.load(f'{cwd}/npt.gro')
 			natoms = tr.topology.select('protein').shape[0]
 			plmd = [ f"WHOLEMOLECULES ENTITY0=1-{natoms}" ]
 			
 			metad = []
-			if self.afbias:
+			if self.afbias.value:
 				with open(f'{cwd}/af-plumed.dat') as f:
 					plmd += [ l.rstrip() for l in f ]
 				metad.append('afscore')
@@ -45,11 +45,13 @@ class MD(w.VBox):
 
 			# XXX: hardcoded 
 			plmd += [
-				f"metad: METAD ARG={','.join(metad)} PACE=1000 HEIGHT=1 BIASFACTOR=15 SIGMA=0.1,0.1 GRID_MIN=-4,-4 GRID_MAX=4,4 FILE=HILLS",
+# XXX: AF going outside grid
+#				f"metad: METAD ARG={','.join(metad)} PACE=1000 HEIGHT=1 BIASFACTOR=15 SIGMA={','.join(['0.1']*len(metad))} GRID_MIN={','.join(['-4']*len(metad))} GRID_MAX={','.join(['4']*len(metad))} FILE=HILLS",
+				f"metad: METAD ARG={','.join(metad)} PACE=1000 HEIGHT=1 BIASFACTOR=15 SIGMA={','.join(['0.1']*len(metad))} FILE=HILLS",
 				f"PRINT FILE=COLVAR ARG={','.join(metad)} STRIDE=100"
 			]
 	
-			with open('{cwd}/plumed.dat','w') as p:
+			with open(f'{cwd}/plumed.dat','w') as p:
 				p.write('\n'.join(plmd))
 				p.write('\n')
 				
@@ -76,16 +78,19 @@ class MD(w.VBox):
 		self.gmx.start("grompp -f md.mdp -c npt.gro -t npt.cpt -p mol.top -o md.tpr")
 
 	def started(self,what):
-		stat = self.gmx.status()
+		stat = None
+		if self.gmx:
+			stat = self.gmx.status()
 		
 		if not stat or stat.failed:
-			log = self.gmx.log()
-			self.main.msg.value = log
-			self.gmx.delete()
+			if self.gmx:
+				log = self.gmx.log()
+				self.main.msg.value = log if log else ''
+				self.gmx.delete()
 			return 'error'
 
 		else:
-			if stat.active:
+			if (stat.active and stat.ready) or stat.succeeded:
 				self.watch = self._finished(what)
 				return 'running'
 			else:
@@ -95,7 +100,10 @@ class MD(w.VBox):
 		try:
 			return next(self.watch)
 		except StopIteration as e:
-			return e.args[0]
+			return e.args[0],None
+		except Exception as e:
+			self.main.msg.value = str(e)
+			return 'error',None
 
 	def _finished(self,what):
 		while True:
@@ -122,7 +130,7 @@ class MD(w.VBox):
 		else:
 			plumed=''
 			
-		self.gmx.start(f"mdrun -deffnm md -pin on -ntomp {self.main.cores} {plumed}",gpus=self.main.gpus,cores=self.main.cores)
+		self.gmx.start(f"mdrun -deffnm md -pin on -ntomp {self.main.cores} {plumed}",gpus=self.main.gpus,cores=(self.main.cores,.1))
 
 		while True:
 			stat = self.gmx.status()
@@ -135,6 +143,10 @@ class MD(w.VBox):
 			if stat.succeeded:
 				self.gmx.delete()
 				return 'idle',None
+
+# FIXME: report pending, needs more refak
+#			if stat.active and not stat.ready:
+#				yield 'starting',what
 
 			s = 0.
 			try:
@@ -153,8 +165,8 @@ class MD(w.VBox):
 
 
 	def _stop(self,e):
-		self.gmx.kill()
-	
+		if self.gmx:
+			self.gmx.kill()
 
 	def _trload(self,e):
 	#	self.main.msg.value = ''
@@ -189,18 +201,23 @@ class MD(w.VBox):
 		stat['md'] = {
 			'nsec' : self.nsec.value,
 			'mdprog' : self.mdprog.value,
+			'afbias' : self.afbias.value,
 		}
 		if self.gmx and self.gmx.name:
 			stat['md']['gmx'] = self.gmx.name
 
 	def restore_status(self,stat):
 		self.nsec.value = stat['md']['nsec']
+		self.nsteps = int(500 * 1000 * self.nsec.value)
 		self.mdprog.value = stat['md']['mdprog']
+		self.afbias.value = stat['md']['afbias']
 		if 'gmx' in stat['md']:
 			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
 			self.gmx.name = stat['md']['gmx']
 
 	def reset_status(self):
 		self.nsec.value = 5
+		self.nsteps = int(500 * 1000 * self.nsec.value)
 		self.mdprog.value = 0.
+		self.afbias.value = False
 		self.gmx = None
