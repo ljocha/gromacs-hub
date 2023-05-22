@@ -21,6 +21,8 @@ RUN . /opt/gmx/bin/activate && pip3 install 'voila<0.4.0' && rm -rf /home/jovyan
 RUN . /opt/gmx/bin/activate && jupyter serverextension enable voila --sys-prefix
 RUN . /opt/gmx/bin/activate && pip3 install ipympl && jupyter nbextension install --py --sys-prefix --overwrite ipympl && jupyter nbextension enable --py --sys-prefix ipympl && rm -rf /home/jovyan/.cache
 
+RUN . /opt/gmx/bin/activate && pip3 install 'jax<0.4' 'jaxlib<0.4' && rm -rf /home/jovyan/.cache
+
 RUN mkdir /opt/gmx/home
 
 WORKDIR /home/jovyan

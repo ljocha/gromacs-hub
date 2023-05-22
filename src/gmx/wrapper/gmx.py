@@ -20,6 +20,9 @@ class GMX:
 		
 		if self.name:
 			raise RuntimeError(f"job {self.name} already running, delete() it first")
+
+		if isinstance(cores,int):
+			cores = (cores,cores)
 			
 		self.name = "gmx-" + str(uuid.uuid4())
 		if isinstance(cmd,list):
@@ -50,14 +53,14 @@ spec:
           runAsGroup: 1000
         env:
         - name: 'OMP_NUM_THREADS'
-          value: '{cores}'
+          value: '{cores[0]}'
         resources:
           requests:
-            cpu: '{cores}'
+            cpu: '{cores[1]}'
             memory: {mem}Gi
             nvidia.com/{gputype}: {gpus}
           limits:
-            cpu: '{cores}'
+            cpu: '{cores[0]}'
             memory: {mem}Gi
             nvidia.com/{gputype}: {gpus}
         volumeMounts:
@@ -87,12 +90,18 @@ spec:
 				
 	def status(self,pretty=True):
 		if self.name:
-			return self.batchapi.read_namespaced_job(self.name, self.ns, pretty=pretty).status
+			try:
+				return self.batchapi.read_namespaced_job(self.name, self.ns, pretty=pretty).status
+			except k8s.client.exceptions.ApiException:
+				return None
 		return None
 		
 	def delete(self):
 		if self.name:
-			self.batchapi.delete_namespaced_job(self.name, self.ns)
+			try:
+				self.batchapi.delete_namespaced_job(self.name, self.ns)
+			except k8s.client.exceptions.ApiException:
+				pass
 			self.name = None
 		return None
 
