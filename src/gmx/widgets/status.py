@@ -25,47 +25,32 @@ class Status(w.HBox):
 		self.watching = False
 		self.stop = False
 
-		# TODO: recover status when revisiting the page
-
-
 	def _watch(self):
 		self.watching = True
 		while (not self.stop):
+			sleep = 1
 			self.lock.acquire()
 			
-			if self.stat == 'idle':
-				if self.showstat.value != 'Idle':
-					self.showstat.value = 'Idle'
-					self.showphase.value = ''
-				sleep = 1
+			if self.stat == 'idle' or self.stat == 'error':
+				ucfirst = self.stat[0].upper() + self.stat[1:]
+				if self.showstat.value != ucfirst:
+					self.showstat.value = ucfirst
+					if self.stat == 'idle':
+						self.showphase.value = ''
 
 			elif self.stat == 'start':
 				self.stat = 'starting'
 				self.showstat.value = 'Starting'
-				self.showphase.value = self.what # XXX
-				self.who.start(self.what)
-				sleep = 1
+				self.showphase.value = ''
+				self.watch = self.who.status()
 
-			elif self.stat == 'starting':
-				stat = self.who.started(self.what)
-				self.stat = stat[0] if isinstance(stat,tuple) else stat		# XXX
-					
+			else:
+				try:
+					self.stat,self.showphase.value,sleep = next(self.watch)
+					self.showstat.value = self.stat[0].upper() + self.stat[1:]
+				except StopIteration as e:
+					self.stat = e.args[0]
 
-				if self.stat == 'running':
-					self.showstat.value = 'Running'
-					sleep = 5
-				else:
-					sleep = 2
-
-			elif self.stat == 'running':
-				self.stat,self.what = self.who.finished(self.what)
-				sleep = 5 if self.stat == 'running' else 1
-
-			elif self.stat == 'error':
-				if self.showstat.value != 'Error':
-					self.showstat.value = 'Error'
-				sleep = 1
-					
 			self.savestat()
 			self.lock.release()
 			time.sleep(sleep)
@@ -97,11 +82,10 @@ class Status(w.HBox):
 			time.sleep(1)
 
 
-	def start(self,what,who):
+	def start(self,who):
 		self.lock.acquire()
 		if self.stat == 'idle' or self.stat == 'error':
 			self.stat = 'start'
-			self.what = what
 			self.who = who
 			self.main.msg.value = ''
 		
@@ -112,24 +96,26 @@ class Status(w.HBox):
 		mystat = dict()
 		mystat['stat'] = self.stat
 		mystat['who'] = type(self.who).__name__
-		mystat['what'] = self.what
 		stat['status'] = mystat
 
 	def restore_status(self,stat):
 		self.lock.acquire()
-		mystat = stat['status']
-		self.stat = mystat['stat']
-		self.showstat.value = self.stat[0].upper() + self.stat[1:]
-		if mystat['who'] == 'Warmup':
-			self.who = self.main.ctrl.warmup
-		elif mystat['who'] == 'MD':
-			self.who = self.main.ctrl.md
-		else:
-			self.who = None
+		try:
+			mystat = stat['status']
+			self.stat = mystat['stat']
+			self.showstat.value = self.stat[0].upper() + self.stat[1:]
+			if mystat['who'] == 'Warmup':
+				self.who = self.main.ctrl.warmup
+			elif mystat['who'] == 'MD':
+				self.who = self.main.ctrl.md
+			else:
+				self.who = None
+	
+			if self.who and self.stat != 'idle' and self.stat != 'error':
+				self.watch = self.who.status()
 
-		self.what = mystat['what']
-		self.showphase.value = self.what if self.what else ''
-		self.lock.release()
+		finally:
+			self.lock.release()
 
 	def reset_status(self):
 		self.lock.acquire()
@@ -137,5 +123,4 @@ class Status(w.HBox):
 		self.showstat.value = self.stat[0].upper() + self.stat[1:]
 		self.showphase.value = ''
 		self.who = None
-		self.what = None
 		self.lock.release()
