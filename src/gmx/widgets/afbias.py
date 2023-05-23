@@ -8,7 +8,7 @@ import mdtraj as md
 
 class AFBias(w.VBox):
 	def __init__(self,main):
-		super().__init__()
+		super().__init__(layout=w.Layout(**main.ldict))
 		self.main = main
 		self.url = w.Text(description='AF results URL')
 		self.download = w.Button(description='Download')
@@ -21,8 +21,8 @@ class AFBias(w.VBox):
 		self.dat = w.Textarea(description='Generated plumed.dat',layout = w.Layout(width='90%',height='20ex'))
 
 		self.children = [
-			w.HBox([self.url, self.download]),
-			w.HBox([self.models, self.generate]),
+			w.HBox([self.url, self.download],layout=w.Layout(**main.ldict)),
+			w.HBox([self.models, self.generate],layout=w.Layout(**main.ldict)),
 			self.dat
 		]
 

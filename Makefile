@@ -1,8 +1,10 @@
 image=ljocha/gromacs-hub
-tag=2023-20
+tag=2023-20style1
 ns=gmxhub-ns
 devns=krenek-ns
 port=8055
+user?=${USER}
+userns=gromacs-${user}-prod-ns
 
 flags=--rm -ti -v ${PWD}:/work -w /work  -p ${port}:${port} -u ${shell id -u} -e HOME=/work
 
@@ -63,6 +65,19 @@ devdeploy: ${package}
 
 devputgmx:
 	kubectl cp src/gmx/gmx.py ${devns}/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'}:/opt/gmx/lib/python3.10/site-packages/gmx/gmx.py
+
+prodbash:
+	kubectl -n ${userns} exec -ti pod/jupyter-ljocha -- bash
+
+prodeploy: ${package} pushcss
+	kubectl cp ${package} ${userns}/jupyter-${user}:/var/tmp/${package_name}
+	kubectl exec -n ${userns}  jupyter-${user} -- bash -c ". /opt/gmx/bin/activate && pip uninstall -y gmx && pip install /var/tmp/${package_name}"
+
+pushcss:
+	for f in index.css theme-dark.css theme-light.css; do \
+		kubectl cp css/$$f ${userns}/jupyter-${user}:/opt/gmx/share/jupyter/nbconvert/templates/lab/static/$$f; \
+	done
+	kubectl cp css/bg3.jpg ${userns}/jupyter-${user}:/opt/gmx/share/jupyter/voila/templates/base/static/bg3.jpg
 
 repo:
 	helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/

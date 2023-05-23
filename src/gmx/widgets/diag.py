@@ -3,31 +3,28 @@ import os
 
 class Diag(w.VBox):
 	def __init__(self,main):
-		super().__init__()
+		super().__init__(layout=w.Layout(**main.ldict))
 		self.main = main
 	
 		self.jobrefresh = w.Button(description='Refresh list')
 		self.jobrefresh.on_click(self._listjobs)
 		self.jobchoose = w.Dropdown()
 		self.jobchoose.observe(self._choosejob,'value')
-		self.jobout = w.Textarea(layout = w.Layout(width='45%',height='20ex'))
-		self.k8sout = w.Textarea(layout = w.Layout(width='45%',height='20ex'))
+		self.jobout = w.Textarea(layout = w.Layout(width='50%',height='20ex',display='flex'))
+		self.k8sout = w.Textarea(layout = w.Layout(width='50%',height='20ex',display='flex'))
 		self.purge = w.Button(description='Purge gmx jobs',button_style='danger')
 		self.purge.on_click(self._purgejobs)
 		self.dirls = w.Button(description='Refresh')
 		self.dirls.on_click(self._dirls)
-		self.dir = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
-		self.dirls = w.Button(description='Refresh')
-		self.dirls.on_click(self._dirls)
-		self.dir = w.Textarea(layout = w.Layout(width='90%',height='20ex'))
+		self.dir = w.Textarea(layout = w.Layout(width='99%',height='20ex',display='flex'))
 		self.purgedir = w.Button(description='Purge backup files',button_style='danger')
 		self.purgedir.on_click(self._purgedir)
 
 		self.children = [
 			w.Label('Choose job'),
-			w.HBox([ self.jobrefresh, self.jobchoose ]),
+			w.HBox([ self.jobrefresh, self.jobchoose ],layout=w.Layout(**main.ldict)),
 			w.Label('Job output'),
-			w.HBox([ self.jobout, self.k8sout ]),
+			w.HBox([ self.jobout, self.k8sout ],layout=w.Layout(**main.ldict)),
 			self.purge,
 			w.Label('Working directory'),
 			self.dirls,

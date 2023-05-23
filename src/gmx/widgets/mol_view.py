@@ -3,11 +3,12 @@ import nglview as nv
 
 class MolView(w.HBox):
 	def __init__(self,main,**kwargs):
-		super().__init__(**kwargs)
+		super().__init__(**kwargs,layout=w.Layout(**main.ldict))
 
 		self.main = main
 		self.v = nv.NGLWidget()
-		self.v.layout.width = '70%'
+		self.v.layout.display = 'flex'
+		self.v.layout.width = '75%'
 		self.v.handle_resize()
 		self.component = None
 		self.licorice = w.Checkbox(description='Licorice',value=False)
@@ -17,7 +18,7 @@ class MolView(w.HBox):
 			w.VBox([
 				self.licorice,
 				self.cartoon
-			])
+			],layout=w.Layout(display='flex',width='20%'))
 		]
 
 		self.licorice.observe(self._change_representation,'value')
@@ -25,6 +26,7 @@ class MolView(w.HBox):
 
 	def _change_representation(self,e):
 		self.v.clear()
+#		self.v.handle_resize()
 		if self.licorice.value:
 			self.v.add_licorice()
 		if self.cartoon.value:

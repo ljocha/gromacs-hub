@@ -9,7 +9,9 @@ import _thread
 
 class Status(w.HBox):
 	def __init__(self,main):
-		super().__init__(layout = w.Layout(width='100%',display="flex", justify_content="flex-end"))
+		l = main.ldict.copy()
+		l['justify_content'] = "flex-end"
+		super().__init__(layout = w.Layout(**l))
 
 		self.main = main
 		self.showstat = w.Label('Idle')
