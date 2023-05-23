@@ -38,3 +38,5 @@ COPY dist/gmx-0.0.1.tar.gz /tmp
 RUN . /opt/gmx/bin/activate && pip3 install /tmp/gmx-0.0.1.tar.gz && rm -rf /home/jovyan/.cache
 
 COPY gmx-main.ipynb ions.mdp minim-sol.mdp nvt.mdp npt.mdp md.mdp.template /opt/gmx/home/
+COPY css/index.css css/theme-dark.css css/theme-light.css /opt/gmx/share/jupyter/nbconvert/templates/lab/static/
+COPY css/bg3.jpg /opt/gmx/share/jupyter/voila/templates/base/static/

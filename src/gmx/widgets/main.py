@@ -5,7 +5,8 @@ import re
 class Main(w.VBox):
 
 	def __init__(self,**kwargs):
-		super().__init__(**kwargs)
+		self.ldict = dict(width='100%', display='flex')
+		super().__init__(**kwargs,layout=w.Layout(**self.ldict))
 		self.select = None
 		self.view = None
 		self.status = None

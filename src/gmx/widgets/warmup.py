@@ -5,7 +5,7 @@ import re
 
 class Warmup(w.VBox):
 	def __init__(self,main,**kwargs):
-		super().__init__(**kwargs)
+		super().__init__(**kwargs,layout=w.Layout(**main.ldict))
 		self.main = main
 		self.gmx = None
 		self.phase = None
@@ -47,8 +47,11 @@ class Warmup(w.VBox):
 			w.Label("TODO: params"),
 			self.startbutton,
 			w.Label('Progress'),
-			w.HBox(list(self.initprep.values())),
-			w.HBox(list(self.mdprog.values())),
+			w.HBox([
+				w.VBox(list(self.initprep.values()),layout=w.Layout(**main.ldict)),
+				w.VBox(list(self.mdprog.values()),layout=w.Layout(**main.ldict))],
+				layout=w.Layout(**main.ldict)
+			)
 		]
 
 		self.startbutton.on_click(self._start_click)

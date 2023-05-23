@@ -61,7 +61,7 @@ class MolUpload(w.FileUpload):
 
 class MolSelect(w.HBox):
 	def __init__(self,main,**kwargs):
-		super().__init__(**kwargs)
+		super().__init__(**kwargs,layout=w.Layout(**main.ldict))
 		self.main = main
 		self.chooser = MolChooser(main)
 		self.upload = MolUpload(main)

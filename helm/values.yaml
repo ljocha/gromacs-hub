@@ -134,6 +134,7 @@ singleuser:
 #    - jupyter
 #    - notebook 
     - voila
+    - --theme=dark
   uid: 1000
   fsGid: 100
   allowPrivilegeEscalation: false

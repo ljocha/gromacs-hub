@@ -7,7 +7,7 @@ import mdtraj as md
 
 class MD(w.VBox):
 	def __init__(self,main):
-		super().__init__()
+		super().__init__(layout=w.Layout(**main.ldict))
 		self.main = main
 
 		self.nsec = w.FloatText(value=5.,description='Simulation length (ns)')
@@ -21,8 +21,8 @@ class MD(w.VBox):
 
 		self.afbias = w.Checkbox(description='Alphafold',value=False)
 		self.children = [ self.nsec, 
-			w.HBox([w.Label('Add bias'), self.afbias ]),
-			w.HBox([self.startbutton,self.stopbutton]),
+			w.HBox([w.Label('Add bias'), self.afbias ],layout=w.Layout(**main.ldict)),
+			w.HBox([self.startbutton,self.stopbutton],layout=w.Layout(**main.ldict)),
 			self.mdprog,
 			self.trload
 		]
