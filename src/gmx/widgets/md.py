@@ -93,11 +93,12 @@ class MD(w.VBox):
 			if stat == 'done': 
 				self.gmx.delete()
 				if self.phase == 'mdrun':
+					self.mdprog.value = 1.
 					return 'idle'
 
 				self.phase = 'mdrun'
 				try:
-					os.remove(f"{self.main.select.cwd()}/md.log")
+					os.remove(f"{cwd}/md.log")
 				except FileNotFoundError:
 					pass
 		
@@ -115,10 +116,10 @@ class MD(w.VBox):
 				return 'error'
 			elif stat == 'starting': yield 'starting',self.phase,2
 			elif stat == 'running': 
-				if self.phase == 'md':
+				if self.phase == 'mdrun':
 					s = 0.
 					try:
-						with open(f"{self.main.select.cwd()}/md.log") as log:
+						with open(f"{cwd}/md.log") as log:
 							lines = log.readlines()
 							for l in reversed(lines):
 								if re.match('\s+Step\s+Time',l):

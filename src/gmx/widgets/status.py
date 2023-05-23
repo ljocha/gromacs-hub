@@ -66,9 +66,9 @@ class Status(w.HBox):
 				except StopIteration as e:
 					self.stat = e.args[0]
 
+			self._changestat(self.stat)
 			self.savestat()
 			self.lock.release()
-			self._changestat(self.stat)
 			time.sleep(sleep)
 			
 		self.watching = False
