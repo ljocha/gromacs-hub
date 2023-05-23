@@ -67,7 +67,7 @@ devputgmx:
 	kubectl cp src/gmx/gmx.py ${devns}/${shell kubectl -n ${devns} get pods | grep gromacs-portal-dev | awk '{print $$1}'}:/opt/gmx/lib/python3.10/site-packages/gmx/gmx.py
 
 prodbash:
-	kubectl -n ${userns} exec -ti pod/jupyter-ljocha -- bash
+	kubectl -n ${userns} exec -ti pod/jupyter-${user} -- bash
 
 prodeploy: ${package} pushcss
 	kubectl cp ${package} ${userns}/jupyter-${user}:/var/tmp/${package_name}
@@ -78,6 +78,9 @@ pushcss:
 		kubectl cp css/$$f ${userns}/jupyter-${user}:/opt/gmx/share/jupyter/nbconvert/templates/lab/static/$$f; \
 	done
 	kubectl cp css/bg3.jpg ${userns}/jupyter-${user}:/opt/gmx/share/jupyter/voila/templates/base/static/bg3.jpg
+
+prodlog:
+	kubectl -n ${userns} logs pod/jupyter-${user}
 
 repo:
 	helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/

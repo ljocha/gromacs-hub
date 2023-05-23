@@ -14,7 +14,8 @@ class Status(w.HBox):
 		super().__init__(layout = w.Layout(**l))
 
 		self.main = main
-		self.showstat = w.Label('Idle')
+		#self.showstat = w.Label('Idle')
+		self.showstat = w.Button(disabled=True,description='Idle',button_style='success')
 		self.showphase = w.Label()
 
 		self.children = [self.showphase, self.showstat ]
@@ -27,34 +28,47 @@ class Status(w.HBox):
 		self.watching = False
 		self.stop = False
 
+	def _changestat(self,stat):
+		ucfirst = stat[0].upper() + stat[1:]
+		if self.showstat.description != ucfirst:
+			self.showstat.description = ucfirst
+			if stat == 'idle':
+				self.showstat.button_style = 'success'
+			elif stat == 'starting' or stat == 'running':
+				self.showstat.button_style = 'warning'
+			elif stat == 'error':
+				self.showstat.button_style = 'danger'
+
 	def _watch(self):
 		self.watching = True
 		while (not self.stop):
 			sleep = 1
 			self.lock.acquire()
 			
-			if self.stat == 'idle' or self.stat == 'error':
-				ucfirst = self.stat[0].upper() + self.stat[1:]
-				if self.showstat.value != ucfirst:
-					self.showstat.value = ucfirst
-					if self.stat == 'idle':
-						self.showphase.value = ''
-
+#			if self.stat == 'idle' or self.stat == 'error':
+#				ucfirst = self.stat[0].upper() + self.stat[1:]
+#				if self.showstat.value != ucfirst:
+#					self.showstat.value = ucfirst
+			if self.stat == 'idle':
+				if self.showphase.value != '':
+					self.showphase.value = ''
+			elif self.stat == 'error':
+				pass
 			elif self.stat == 'start':
 				self.stat = 'starting'
-				self.showstat.value = 'Starting'
+#				self.showstat.value = 'Starting'
 				self.showphase.value = ''
 				self.watch = self.who.status()
-
 			else:
 				try:
 					self.stat,self.showphase.value,sleep = next(self.watch)
-					self.showstat.value = self.stat[0].upper() + self.stat[1:]
+#					self.showstat.value = self.stat[0].upper() + self.stat[1:]
 				except StopIteration as e:
 					self.stat = e.args[0]
 
 			self.savestat()
 			self.lock.release()
+			self._changestat(self.stat)
 			time.sleep(sleep)
 			
 		self.watching = False
@@ -105,7 +119,8 @@ class Status(w.HBox):
 		try:
 			mystat = stat['status']
 			self.stat = mystat['stat']
-			self.showstat.value = self.stat[0].upper() + self.stat[1:]
+#			self.showstat.value = self.stat[0].upper() + self.stat[1:]
+			self._changestat(self.stat)
 			if mystat['who'] == 'Warmup':
 				self.who = self.main.ctrl.warmup
 			elif mystat['who'] == 'MD':
@@ -122,7 +137,8 @@ class Status(w.HBox):
 	def reset_status(self):
 		self.lock.acquire()
 		self.stat = 'idle'
-		self.showstat.value = self.stat[0].upper() + self.stat[1:]
+		self._changestat(self.stat)
+#		self.showstat.value = self.stat[0].upper() + self.stat[1:]
 		self.showphase.value = ''
 		self.who = None
 		self.lock.release()

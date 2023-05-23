@@ -239,8 +239,9 @@ all of MD as it is not optimized for dense, information rich UIs.
   --jp-warn-color2: var(--md-orange-300);
   --jp-warn-color3: var(--md-orange-100);
 
+  /* --jp-error-color1: #4cd9f4;; */
   --jp-error-color0: var(--md-red-700);
-  --jp-error-color1: #4cd9f4;;
+  --jp-error-color1: var(--md-red-500);
   --jp-error-color2: var(--md-red-300);
   --jp-error-color3: var(--md-red-100);
 
