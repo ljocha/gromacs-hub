@@ -74,6 +74,7 @@ class Warmup(w.VBox):
 
 	def status(self):
 		cwd = self.main.select.cwd()
+
 		if not self.gmx:
 			self.gmx = GMX(workdir=cwd,pvc=self.main.pvc)
 
@@ -94,6 +95,8 @@ class Warmup(w.VBox):
 
 				if self.phase in self.simple_cmds:
 					self.initprep[self.phase].value = True
+				elif not self.mdpp:
+					self.mdprog[self.phase].value = 1.
 
 				try:
 					self.phase,self.mdpp = next(phases)
