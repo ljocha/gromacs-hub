@@ -95,6 +95,18 @@ spec:
 			except k8s.client.exceptions.ApiException:
 				return None
 		return None
+
+	def cooked(self):
+		stat = self.status()
+		if stat:
+			if stat.failed: return 'error'
+			if stat.succeeded: return 'done'
+			if stat.active and not stat.ready: return 'starting'
+			if stat.active: return 'running'
+			if not stat.active: return 'starting'
+			print(stat)
+			raise ValueError('unknown status')
+		return None
 		
 	def delete(self):
 		if self.name:

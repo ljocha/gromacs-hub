@@ -8,7 +8,8 @@ class Warmup(w.VBox):
 		super().__init__(**kwargs)
 		self.main = main
 		self.gmx = None
-		self.mdpp = False
+		self.phase = None
+		self.mdpp = None
 
 		self.startbutton = w.Button(description='Start')
 
@@ -50,89 +51,95 @@ class Warmup(w.VBox):
 			w.HBox(list(self.mdprog.values())),
 		]
 
+		self.startbutton.on_click(self._start_click)
 
-		self.startbutton.on_click(lambda e: self.main.status.start('pdb2gmx',self))
+	def _start_click(self,e):
+		self.reset_status()
+		self.main.status.start(self)
 
-	def start(self,what):
-		if what == 'pdb2gmx':
-			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
-			for c in self.initprep.values():
-				c.value = False
-			for p in self.mdprog.values():
-				p.value = 0.
-			self.mdpp = True
+	def _phases(self,start):
+		if start in self.simple_cmds:
+			i = list(self.simple_cmds.keys()).index(start)+1
+			for k in list(self.simple_cmds.keys())[i:]:
+				yield k,None
 
-		if what in self.simple_cmds:
-			if isinstance(self.simple_cmds[what],tuple):
-				self.gmx.start(self.simple_cmds[what][0],input=self.simple_cmds[what][1])
-			else:
-				self.gmx.start(self.simple_cmds[what])
+		i = 0
+		if start in self.mdruns:
+			i = list(self.mdruns.keys()).index(start)+1
+		for k in list(self.mdruns.keys())[i:]:
+			yield k,True
+			yield k,False
 
-		if what in self.mdruns:
-			if self.mdpp:
-				self.gmx.start(self.mdruns[what][0])
-			else:
-				try:
-					os.remove(f"{self.main.select.cwd()}/{self.mdruns[what][2]}")
-				except FileNotFoundError:
-					pass
+		return
 
-				self.gmx.start(self.mdruns[what][1],gpus=self.main.gpus)
+	def status(self):
+		cwd = self.main.select.cwd()
 
-	def started(self,what):
-#		if what in self.simple_cmds:
-			stat = self.gmx.status()
-			
-			if not stat.failed:
-				return 'running' if stat.active else 'starting'
-			else:
-				log = self.gmx.log()
-				self.main.msg.value = log
-				self.gmx.delete()
+		if not self.gmx:
+			self.gmx = GMX(workdir=cwd,pvc=self.main.pvc)
+
+		if self.phase is None: 
+			self.phase = 'pdb2gmx'
+			self.gmx.start(self.simple_cmds['pdb2gmx'])
+
+		phases = self._phases(self.phase)
+
+		while True:
+			stat = self.gmx.cooked()
+			if not stat:
+				self.main.msg.value = 'Cannot read gromacs status'
 				return 'error'
 
-	def finished(self,what):
-		stat = self.gmx.status()
-		if stat.succeeded:
-			self.gmx.delete()
-			if what in self.simple_cmds:
-				self.initprep[what].value = True
-				cmds = self.simple_cmds.keys()
-				for i,c in enumerate(cmds):
-					if c == what: break
-	
-				if i < len(cmds)-1:
-					return 'start',list(cmds)[i+1]
-				else:
-					return 'start','minimize'
-
-			if what in self.mdruns:
-				cmds = self.mdruns.keys()
-				for i,c in enumerate(cmds):
-					if c == what: break
-	
-				if self.mdpp:
-					self.mdpp = False
-					return 'start',what
-				else:
-					self.mdprog[what].value = 1.
-					self.mdpp = True
-					if i < len(cmds)-1:
-						return 'start',list(cmds)[i+1]
-					else:
-						return 'idle',None
-		
-		else:
-			if stat.failed:
-				log = self.gmx.log()
-				self.main.msg.value = log
+			if stat == 'done':
 				self.gmx.delete()
-				return 'error',what
-			else:
-				if not self.mdpp:
+
+				if self.phase in self.simple_cmds:
+					self.initprep[self.phase].value = True
+				elif not self.mdpp:
+					self.mdprog[self.phase].value = 1.
+
+				try:
+					self.phase,self.mdpp = next(phases)
+				except StopIteration:
+					return 'idle'
+
+				if self.phase in self.simple_cmds:
+					if isinstance(self.simple_cmds[self.phase],tuple):
+						self.gmx.start(self.simple_cmds[self.phase][0],input=self.simple_cmds[self.phase][1])
+					else:
+						self.gmx.start(self.simple_cmds[self.phase])
+					yield 'starting',self.phase,2
+
+				elif self.phase in self.mdruns:
+					if self.mdpp:
+						self.gmx.start(self.mdruns[self.phase][0])
+						yield 'starting',self.phase+'-grompp',2
+					else:
+						try:
+							os.remove(f"{cwd}/{self.mdruns[self.phase][2]}")
+						except FileNotFoundError:
+							pass
+						self.gmx.start(self.mdruns[self.phase][1],gpus=self.main.gpus)
+						yield 'starting',self.phase+'-mdrun',2
+						
+			elif stat == 'error':
+				log = self.gmx.log()
+				self.main.msg.value = log if log else 'Unknown gromacs error'
+				return 'error'
+			elif stat == 'starting': 
+				suff = ''
+				if self.mdpp is not None:
+					suff = '-grompp' if self.mdpp else '-mdrun'
+				yield 'starting',self.phase+suff,2
+			elif stat == 'running':
+				if self.mdpp is None:
+					yield 'running',self.phase,1
+				elif self.mdpp:
+					yield 'running',self.phase+'-grompp',1
+				else:
 					s = 0.
 					try:
-						with open(f"{self.main.select.cwd()}/{self.mdruns[what][2]}") as log:
+						with open(f"{cwd}/{self.mdruns[self.phase][2]}") as log:
 							lines = log.readlines()
 							for l in reversed(lines):
 								if re.match('\s+Step\s+Time',l):
@@ -142,10 +149,9 @@ class Warmup(w.VBox):
 					except FileNotFoundError:
 						pass
 	
-					self.mdprog[what].value = s / self.mdruns[what][3]
+					self.mdprog[self.phase].value = s / self.mdruns[self.phase][3]
+					yield 'running',self.phase+'-mdrun',5
 		
-
-				return 'running',what
 
 
 	def gather_status(self,stat):
@@ -160,8 +166,8 @@ class Warmup(w.VBox):
 		for k in self.mdruns.keys():
 			mystat[k] = self.mdprog[k].value
 
-		mystat['mdpp'] = self.mdpp
-
+		if self.phase is not None: mystat['phase'] = self.phase
+		if self.mdpp is not None: mystat['mdpp'] = self.mdpp
 		stat['warmup'] = mystat
 
 	def restore_status(self,stat):
@@ -175,17 +181,17 @@ class Warmup(w.VBox):
 
 		for k in self.mdruns.keys():
 			self.mdprog[k].value = mystat[k] 
-#			print(f'{k}: {mystat[k]}')
 	
-		self.mdpp = mystat['mdpp']
+		self.phase = mystat['phase'] if 'phase' in mystat else None
+		self.mdpp = mystat['mdpp'] if 'mdpp' in mystat else None
 
 	def reset_status(self):
 		self.gmx = None
+		self.phase = None
+		self.mdpp = None
 		
 		for k in self.simple_cmds.keys():
 			self.initprep[k].value = False
 
 		for k in self.mdruns.keys():
 			self.mdprog[k].value = 0.
-	
-		self.mdpp = False

@@ -1,5 +1,5 @@
 image=ljocha/gromacs-hub
-tag=2023-19
+tag=2023-19rf2
 ns=gmxhub-ns
 devns=krenek-ns
 port=8055
