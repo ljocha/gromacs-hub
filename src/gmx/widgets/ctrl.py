@@ -11,11 +11,23 @@ class Ctrl(w.Tab):
 		# self.bias = w.Tab([w.Label('TODO')])
 		self.bias = gw.Bias(main)
 		self.md = gw.MD(main)
-		self.children = [self.warmup, self.bias, self.md, self.diag]
+		self.mdview = gw.MDView(main)
+		self.children = [self.warmup, self.bias, self.md, self.mdview, self.diag]
 		self.set_title(0,'Prepare molecule')
 		self.set_title(1,'Bias potential')
 		self.set_title(2,'Run MD')
-		self.set_title(3,'Diagnostics')
+		self.set_title(3,'Visualize MD')
+		self.set_title(4,'Diagnostics')
+
+		self.observe(self._tab_switch,'selected_index')
+
+	def _tab_switch(self,e):
+		if e.new == 3:
+			self.main.view.clear()
+		else:
+			if e.old == 3:
+				self.main.view.show_pdb(self.main.select.chosen)
+
 
 	def gather_status(self,stat):
 		for w in self.children:

@@ -18,9 +18,12 @@ class AFBias(w.VBox):
 		self.generate = w.Button(description='Generate plumed.dat')
 		self.generate.on_click(self._generate)
 
+		self.epsilon = w.FloatText(value=0.00001,description='Epsilon')
+
 		self.dat = w.Textarea(description='Generated plumed.dat',layout = w.Layout(width='90%',height='20ex'))
 
 		self.children = [
+			self.epsilon,
 			w.HBox([self.url, self.download],layout=w.Layout(**main.ldict)),
 			w.HBox([self.models, self.generate],layout=w.Layout(**main.ldict)),
 			self.dat
@@ -91,6 +94,7 @@ class AFBias(w.VBox):
 				"LABEL=afscore",
 			  f"ATOMS={','.join(map(str,atoms))}",
 				"LAMBDA=1000",
+				f"EPSILON={self.epsilon.value}",
 				f"DISTANCES={','.join(map(str,bins/10.))}"
 			] + [
 				f"PROB_MATRIX{k}={','.join([ str(probs2[i,j,k]) for i in range(ncas) for j in range(ncas) ])}"
