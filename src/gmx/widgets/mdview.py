@@ -4,7 +4,7 @@ import os
 import re
 import time
 import mdtraj as md
-#import plotly.graph_objects as go
+import plotly.graph_objects as go
 import numpy as np
 
 class MDView(w.VBox):
@@ -15,33 +15,34 @@ class MDView(w.VBox):
 		self.trload = w.Button(description='Reload trajectory')
 		self.trload.on_click(self._trload)
 
-		self.frame = w.IntSlider(description='Frame',min=0,max=1)
+		ld = main.ldict.copy()
+		self.frame = w.IntSlider(description='Frame',min=0,max=1,layout=w.Layout(**main.ldict))
 		
-#		self.timeline = go.FigureWidget(
-#			data=[
-#				go.Scatter(x=[0], y=[1],
-#					 marker=go.scatter.Marker(line=dict(width=5),symbol=100,size=15,color='red')
-#				),
-#				go.Scatter(x=np.arange(100),y=np.zeros(100),
-#					 marker=go.scatter.Marker(color='blue')
-#				)
-#			],
-#			layout=go.Layout(height=500)
-#		)
+		self.timeline = go.FigureWidget(
+			data=[
+				go.Scatter(x=[0], y=[1],
+					 marker=go.scatter.Marker(line=dict(width=5),symbol=100,size=15,color='red')
+				),
+				go.Scatter(x=np.arange(100),y=np.zeros(100),
+					 marker=go.scatter.Marker(color='blue')
+				)
+			],
+			layout=go.Layout(height=500)
+		)
 
-		# self.children = [ self.trload, self.frame, self.timeline ]
-		self.children = [ self.trload, self.frame ]
+		self.children = [ self.trload, self.frame, self.timeline ]
+		# self.children = [ self.trload, self.frame ]
 		w.link((self.frame,'value'), (main.view.v,'frame'))
 		self.frame.observe(self._frame,'value')
 
 	def _frame(self,e):
 		pass
-		"""with self.timeline.batch_update():
+		with self.timeline.batch_update():
 			self.timeline.data[0].x = [e.new]
 			l = len(self.timeline.data[1].y)
 			self.timeline.data[0].y = [ self.timeline.data[1].y[e.new if e.new < l else l-1] ]
 
-		self.main.view.v.show()"""
+		#self.main.view.v.show()
 		
 	def _trload(self,e):
 	#	self.main.msg.value = ''
@@ -75,8 +76,8 @@ class MDView(w.VBox):
 
 		rmsd = md.rmsd(tr[:],tr[0])
 #		rg = md.compute_rg(tr)
-#		with self.timeline.batch_update():
-#			self.timeline.data[1].x = np.arange(len(rmsd))
-#			self.timeline.data[1].y = rmsd
+		with self.timeline.batch_update():
+			self.timeline.data[1].x = np.arange(len(rmsd))
+			self.timeline.data[1].y = rmsd
 
 
