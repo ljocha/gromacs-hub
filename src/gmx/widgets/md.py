@@ -16,15 +16,12 @@ class MD(w.VBox):
 		self.stopbutton = w.Button(description='Stop',button_style='danger')
 		self.stopbutton.on_click(self._stop)
 		self.mdprog = w.FloatProgress(value=0.,min=0.,max=1.,description='Progress',orientation='horizontal')
-		self.trload = w.Button(description='Reload trajectory')
-		self.trload.on_click(self._trload)
 
 		self.afbias = w.Checkbox(description='Alphafold',value=False)
 		self.children = [ self.nsec, 
 			w.HBox([w.Label('Add bias'), self.afbias ],layout=w.Layout(**main.ldict)),
 			w.HBox([self.startbutton,self.stopbutton],layout=w.Layout(**main.ldict)),
 			self.mdprog,
-			self.trload
 		]
 
 		self.gmx = None
@@ -137,35 +134,6 @@ class MD(w.VBox):
 	def _stop(self,e):
 		if self.gmx:
 			self.gmx.kill()
-
-	def _trload(self,e):
-	#	self.main.msg.value = ''
-		self.trload.disabled = True
-		odesc = self.trload.description
-		self.trload.description = 'loading trajectory'
-		pwd = self.main.select.cwd()
-		gmx = GMX(workdir=pwd,pvc=self.main.pvc)
-		gmx.start("trjconv -f md.xtc -s npt.gro -pbc nojump -o pbc.xtc",input=1)
-		while True:
-			stat = gmx.status()
-			if stat.succeeded:
-				gmx.delete()
-				break
-			if stat.failed:
-				self.main.msg.value = gmx.log()
-				self.trload.description = odesc
-				self.trload.disablded = False
-				gmx.delete()
-				return
-			time.sleep(2)
-	
-		tr = md.load_xtc(f'{pwd}/pbc.xtc',top=f'{pwd}/mol.gro')
-		idx=tr[0].top.select("name CA")
-		tr.superpose(tr[0],atom_indices=idx)
-		self.main.view.show_trajectory(tr)
-		self.trload.description = odesc
-		self.trload.disabled = False
-
 
 	def gather_status(self,stat):
 		stat['md'] = {
