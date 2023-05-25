@@ -10,7 +10,7 @@ class MD(w.VBox):
 		super().__init__(layout=w.Layout(**main.ldict))
 		self.main = main
 
-		self.nsec = w.FloatText(value=5.,description='Simulation length (ns)')
+		self.nsec = w.FloatText(value=5.,description='Duration (ns)')
 		self.startbutton = w.Button(description='Start')
 		self.startbutton.on_click(self._start_click)
 		self.stopbutton = w.Button(description='Stop',button_style='danger')
@@ -18,8 +18,12 @@ class MD(w.VBox):
 		self.mdprog = w.FloatProgress(value=0.,min=0.,max=1.,description='Progress',orientation='horizontal')
 
 		self.afbias = w.Checkbox(description='Alphafold',value=False)
-		self.children = [ self.nsec, 
-			w.HBox([w.Label('Add bias'), self.afbias ],layout=w.Layout(**main.ldict)),
+		self.children = [ 
+			w.HTML('<h4>Essential simulation parameters</h4>'),
+			self.nsec, 
+			w.HTML('<h4>Include bias potential(s) generated in the previous tab</h4>'),
+			w.HBox([self.afbias ],layout=w.Layout(**main.ldict)),
+			w.HTML('<h4>Start simulation and monitor progress</h4>'),
 			w.HBox([self.startbutton,self.stopbutton],layout=w.Layout(**main.ldict)),
 			self.mdprog,
 		]

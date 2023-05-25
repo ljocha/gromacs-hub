@@ -10,22 +10,45 @@ class AFBias(w.VBox):
 	def __init__(self,main):
 		super().__init__(layout=w.Layout(**main.ldict))
 		self.main = main
-		self.url = w.Text(description='AF results URL')
+		self.url = w.Text(description='URL')
 		self.download = w.Button(description='Download')
 		self.download.on_click(self._download)
 
 		self.models = w.Dropdown(description='Models')
-		self.generate = w.Button(description='Generate plumed.dat')
+		self.generate = w.Button(description='Generate')
 		self.generate.on_click(self._generate)
 
 		self.epsilon = w.FloatText(value=0.00001,description='Epsilon')
 
-		self.dat = w.Textarea(description='Generated plumed.dat',layout = w.Layout(width='90%',height='20ex'))
+		self.dat = w.Textarea(description='plumed.dat',layout = w.Layout(height='50ex',**main.ldict))
 
 		self.children = [
-			self.epsilon,
+			w.HTML('''
+<p>
+Prepare fragment of <a href="http://plumed.org/" class="cm-link">Plumed</a> input file
+based on AlphaFold intermediate inputs. 
+The collective variable can be interpreted as a probabilistically based measure to assess how 
+AlphaFold would favor the current conformation.
+See <a href="https://doi.org/10.3389/fmolb.2022.878133" class="cm-link">Spiwok et al, 2022</a>
+for details. 
+</p>
+<p>
+Provide a download link for a zipfile of a folder with AlphaFold results.
+It was tested with our <a href="http://alphafold.cloud.e-infra.cz/" class="cm-link">twin service</a>, 
+run the calculation there (for temporary technical reasons only the basic <i>AlphaFold</i> method works,
+not <i>CollabFold</i> or others), generate download link, and paste it here.
+</p>
+'''),
 			w.HBox([self.url, self.download],layout=w.Layout(**main.ldict)),
-			w.HBox([self.models, self.generate],layout=w.Layout(**main.ldict)),
+			w.HTML('''
+<p>
+After parsing the file, the dropdown menu bellow is populated with available models 
+sorted according to their confidence.
+<i>Epsilon</i> is stabilizing term in softmax interpolation (see the paper),
+increase it if the subsequent MD crashes becaouse of too high energy, high velocity etc.
+</p>
+'''),
+			w.HBox([self.models, self.epsilon, self.generate],layout=w.Layout(**main.ldict)),
 			self.dat
 		]
 
@@ -33,10 +56,16 @@ class AFBias(w.VBox):
 		cwd = self.main.select.cwd()
 		try:
 			self.main.msg.value = ''
+			self.download.disabled = True
+			self.download.description = 'downloading...'
 			urllib.request.urlretrieve(self.url.value,f'{cwd}/af.zip')
+			self.download.description = 'parsing...'
 			self._parse_zip()
 		except Exception as e:
 			self.main.msg.value = str(e)
+		finally:
+			self.download.disabled = False
+			self.download.description = 'Download'
 
 		self.main.status.savestat(lock=True)
 
