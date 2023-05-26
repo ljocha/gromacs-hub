@@ -253,6 +253,7 @@ async def bootstrap_pre_spawn(spawner):
   spawner.cpu_guarantee = .2
   spawner.mem_limit = '8G'
   spawner.mem_guarantee = '4G'
+  spawner.container_security_context = {"capabilities": {"drop": ["ALL"]}}
 
 c.KubeSpawner.pre_spawn_hook = bootstrap_pre_spawn
 c.KubeSpawner.enable_user_namespaces = True
