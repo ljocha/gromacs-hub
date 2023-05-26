@@ -23,6 +23,7 @@ class Main(w.VBox):
 
 	def build(self):
 		children = [
+			w.HTML('<h1>Gromacs+Plumed molecular dynamics with bias potential</h1>'),
 			self.select,
 			self.status, 
 			w.HTML('<h3>Molecule / trajectory display</h3>'),

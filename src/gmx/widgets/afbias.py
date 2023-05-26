@@ -26,7 +26,7 @@ class AFBias(w.VBox):
 			w.HTML('''
 <p>
 Prepare fragment of <a href="http://plumed.org/" class="cm-link">Plumed</a> input file
-based on AlphaFold intermediate inputs. 
+based on AlphaFold intermediate outputs. 
 The collective variable can be interpreted as a probabilistically based measure to assess how 
 AlphaFold would favor the current conformation.
 See <a href="https://doi.org/10.3389/fmolb.2022.878133" class="cm-link">Spiwok et al, 2022</a>
@@ -35,7 +35,8 @@ for details.
 <p>
 Provide a download link for a zipfile of a folder with AlphaFold results.
 It was tested with our <a href="http://alphafold.cloud.e-infra.cz/" class="cm-link">twin service</a>, 
-run the calculation there (for temporary technical reasons only the basic <i>AlphaFold</i> method works,
+run the calculation there (for temporary technical reasons only the basic <i>AlphaFold</i> method
+is compatible with this portal,
 not <i>CollabFold</i> or others), generate download link, and paste it here.
 </p>
 '''),

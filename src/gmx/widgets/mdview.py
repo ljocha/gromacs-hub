@@ -30,7 +30,21 @@ class MDView(w.VBox):
 			layout=go.Layout(height=500)
 		)
 
-		self.children = [ self.trload, self.frame, self.timeline ]
+		self.children = [ 
+			w.HTML('''
+<h4>Load trajectory</h4>
+Load the MD outcome and display as animation above. Can be done also on partial trajectory of unfinished simulation.
+(Parsing the trajectory may take some time, be patient.)
+'''),
+			self.trload,
+			w.HTML('''
+<h4>Chose displayed frame</h4>
+Frames are sampled every 10 ps. The slider controls both the animation above and the graph below.
+'''),
+			self.frame,
+			w.HTML('<h4>Progress of RMSD wrt. initial structure</h4>'),
+			self.timeline
+		]
 		# self.children = [ self.trload, self.frame ]
 		w.link((self.frame,'value'), (main.view.v,'frame'))
 		self.frame.observe(self._frame,'value')
