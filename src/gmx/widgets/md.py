@@ -25,11 +25,12 @@ class MD(w.VBox):
 		)
 
 		self.afbias = w.Checkbox(description='Alphafold',value=False)
+		self.alpharmsd = w.Checkbox(description='Alpha RMSD',value=False)
 		self.children = [ 
 			w.HTML('<h4>Essential simulation parameters</h4>'),
 			self.nsec, 
 			w.HTML('<h4>Include bias potential(s) generated in the previous tab</h4>'),
-			w.HBox([self.afbias ],layout=w.Layout(**main.ldict)),
+			w.HBox([self.afbias, self.alpharmsd ],layout=w.Layout(**main.ldict)),
 			w.HTML('<h4>Start simulation</h4>'),
 			w.HBox([self.startbutton,self.stopbutton],layout=w.Layout(**main.ldict)),
 			w.HTML('<h4>Progress</h4>'),
@@ -45,28 +46,32 @@ class MD(w.VBox):
 
 	def _merge_plumed(self):
 		cwd = self.main.select.cwd()
-		if self.afbias.value: # XXX or something else
+		if self.afbias.value or self.alpharmsd: # XXX or something else
 			tr = md.load(f'{cwd}/npt.gro')
 			natoms = tr.topology.select('protein').shape[0]
-			plmd = [ f"WHOLEMOLECULES ENTITY0=1-{natoms}" ]
-			
+			plmd = f"""
+WHOLEMOLECULES ENTITY0=1-{natoms}
+MOLINFO STRUCTURE=mol.pdb
+"""
 			metad = []
 			if self.afbias.value:
-				with open(f'{cwd}/af-plumed.dat') as f:
-					plmd += [ l.rstrip() for l in f ]
+				plmd += self.main.ctrl.bias.af.dat.value
 				metad.append('afscore')
 
+			if self.alpharmsd:
+				plmd += self.main.ctrl.bias.alpharmsd.dat.value
+				metad.append('alpharmsd')
 
 			# XXX: hardcoded 
-			plmd += [
+			plmd += '\n'.join([
 # XXX: AF going outside grid
 #				f"metad: METAD ARG={','.join(metad)} PACE=1000 HEIGHT=1 BIASFACTOR=15 SIGMA={','.join(['0.1']*len(metad))} GRID_MIN={','.join(['-4']*len(metad))} GRID_MAX={','.join(['4']*len(metad))} FILE=HILLS",
 				f"metad: METAD ARG={','.join(metad)} PACE=1000 HEIGHT=1 BIASFACTOR=15 SIGMA={','.join(['0.1']*len(metad))} FILE=HILLS",
 				f"PRINT FILE=COLVAR ARG={','.join(metad)} STRIDE=100"
-			]
+			])
 	
 			with open(f'{cwd}/plumed.dat','w') as p:
-				p.write('\n'.join(plmd))
+				p.write(plmd)
 				p.write('\n')
 				
 
@@ -152,6 +157,7 @@ class MD(w.VBox):
 			'nsec' : self.nsec.value,
 			'mdprog' : self.mdprog.value,
 			'afbias' : self.afbias.value,
+			'alpharmsd' : self.alpharmsd.value,
 		}
 		if self.phase:
 			stat['md']['phase'] = self.phase
@@ -159,19 +165,24 @@ class MD(w.VBox):
 			stat['md']['gmx'] = self.gmx.name
 
 	def restore_status(self,stat):
-		self.nsec.value = stat['md']['nsec']
-		self.nsteps = int(500 * 1000 * self.nsec.value)
-		self.mdprog.value = stat['md']['mdprog']
-		self.afbias.value = stat['md']['afbias']
-		if 'gmx' in stat['md']:
-			self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
-			self.gmx.name = stat['md']['gmx']
-		if 'phase' in stat['md']:
-			self.phase = stat['md']['phase']
-
+		try:
+			self.nsec.value = stat['md']['nsec']
+			self.nsteps = int(500 * 1000 * self.nsec.value)
+			self.mdprog.value = stat['md']['mdprog']
+			self.afbias.value = stat['md']['afbias']
+			self.alpharmsd.value = stat['md']['alpharmsd']
+			if 'gmx' in stat['md']:
+				self.gmx = GMX(workdir=f'{self.main.select.cwd()}',pvc=self.main.pvc)
+				self.gmx.name = stat['md']['gmx']
+			if 'phase' in stat['md']:
+				self.phase = stat['md']['phase']
+		except KeyError:
+			self.reset_status()
+	
 	def reset_status(self):
 		self.nsec.value = 5
 		self.afbias.value = False
+		self.alpharmsd.value = False
 		self.soft_reset()
 
 	def soft_reset(self):

@@ -135,8 +135,8 @@ increase it if the subsequent MD crashes becaouse of too high energy, high veloc
 			]
 
 			self.dat.value = '\n'.join(plmd) + '\n'
-			with open(f'{cwd}/af-plumed.dat','w') as p:
-				p.write(self.dat.value)
+#			with open(f'{cwd}/af-plumed.dat','w') as p:
+#				p.write(self.dat.value)
 		
 		except Exception as e:
 			self.main.msg.value = str(e)
@@ -146,15 +146,20 @@ increase it if the subsequent MD crashes becaouse of too high energy, high veloc
 		mystat = dict()
 		mystat['url'] = self.url.value
 		mystat['model'] = self.models.value
+		mystat['dat'] = self.dat.value
 		stat['afbias'] = mystat
 
 	def restore_status(self,stat):
-		mystat = stat['afbias']
-		self.url.value = mystat['url']
-		if self.url.value:
-			self._parse_zip()
-
-		self.models.value = mystat['model']
+		try:
+			mystat = stat['afbias']
+			self.url.value = mystat['url']
+			if self.url.value:
+				self._parse_zip()
+	
+			self.models.value = mystat['model']
+			self.dat.value = mystat['dat']
+		except KeyError:
+			self.reset_status()
 			
 	def reset_status(self):
 		self.url.value = ''
