@@ -59,13 +59,21 @@ class MolUpload(w.FileUpload):
 		
 
 
-class MolSelect(w.HBox):
+class MolSelect(w.VBox):
 	def __init__(self,main,**kwargs):
 		super().__init__(**kwargs,layout=w.Layout(**main.ldict))
 		self.main = main
 		self.chooser = MolChooser(main)
 		self.upload = MolUpload(main)
-		self.children = [ self.chooser, w.Label('or'), self.upload ]
+		self.children = [
+			w.HTML('''<h3>Select molecule</h3>
+<p>
+Upload reasonable named PDB file or choose from previously uploaded. When molecules are switched,
+the portal keeps its status and calculations running in background.
+</p>
+'''),
+			w.HBox([ self.chooser, w.Label('or'), self.upload ])
+		]
 		self.chosen = None
 
 	def cwd(self):

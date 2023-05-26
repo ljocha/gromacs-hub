@@ -22,7 +22,21 @@ class Main(w.VBox):
 		self.pvc=os.popen(f'kubectl get pvc | grep {pvcid} | cut -f1 -d" "').read().rstrip()
 
 	def build(self):
-		children = [ self.select, self.status, self.view, self.ctrl, w.Label('Error output'), self.msg ]
+		children = [
+			w.HTML('<h1>Gromacs+Plumed molecular dynamics with bias potential</h1>'),
+			self.select,
+			self.status, 
+			w.HTML('<h3>Molecule / trajectory display</h3>'),
+			self.view,
+			w.HTML('<h3>Available actions</h3>Progress from left to right, in general.'),
+			self.ctrl,
+			w.HTML('<h3>Error output</h3>'),
+			self.msg,
+			w.HTML('''
+<p/>
+<p><a href="/hub/home" class="cm-link">Back to JupyterHub control</a></p>
+''')
+			]
 		self.children = [ c for c in children if c is not None ]
 
 	def gather_status(self,stat):

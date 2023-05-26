@@ -18,7 +18,7 @@ class Status(w.HBox):
 		self.showstat = w.Button(disabled=True,description='Idle',button_style='success')
 		self.showphase = w.Label()
 
-		self.children = [self.showphase, self.showstat ]
+		self.children = [ w.Label('Portal status:'), self.showphase, self.showstat ]
 
 		self.lock = threading.Lock()
 		self.stat = 'idle'

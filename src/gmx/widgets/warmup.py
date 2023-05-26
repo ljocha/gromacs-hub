@@ -44,12 +44,15 @@ class Warmup(w.VBox):
 		self.mdprog = { k : w.FloatProgress(value=0., min=0., max=1., description=k, orientation='horizontal') for k in self.mdruns.keys() }
 
 		self.children = [
+			w.HTML('''Perform preparation of the molecule for MD in a batch -- 
+apply force field, solvate, add counterions, minimize, 
+run short isothermal-isochoric and isothermal-isobaric constrained simulations'''),
 			w.Label("TODO: params"),
 			self.startbutton,
-			w.Label('Progress'),
+			w.HTML('<h4>Progress</h4>'),
 			w.HBox([
-				w.VBox(list(self.initprep.values()),layout=w.Layout(**main.ldict)),
-				w.VBox(list(self.mdprog.values()),layout=w.Layout(**main.ldict))],
+				w.VBox([w.Label('Initial steps')] + list(self.initprep.values()),layout=w.Layout(**main.ldict)),
+				w.VBox([w.Label('Short simulations')] + list(self.mdprog.values()),layout=w.Layout(**main.ldict))],
 				layout=w.Layout(**main.ldict)
 			)
 		]

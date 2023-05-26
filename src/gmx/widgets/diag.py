@@ -12,7 +12,7 @@ class Diag(w.VBox):
 		self.jobchoose.observe(self._choosejob,'value')
 		self.jobout = w.Textarea(layout = w.Layout(width='50%',height='20ex',display='flex'))
 		self.k8sout = w.Textarea(layout = w.Layout(width='50%',height='20ex',display='flex'))
-		self.purge = w.Button(description='Purge gmx jobs',button_style='danger')
+		self.purge = w.Button(description='Purge jobs',button_style='danger')
 		self.purge.on_click(self._purgejobs)
 		self.dirls = w.Button(description='Refresh')
 		self.dirls.on_click(self._dirls)
@@ -21,12 +21,18 @@ class Diag(w.VBox):
 		self.purgedir.on_click(self._purgedir)
 
 		self.children = [
-			w.Label('Choose job'),
+			w.HTML('<h4>Danger area: job diagnostics and cleanup</h4>'),
+			w.Label('Choose Kubernetes job'),
 			w.HBox([ self.jobrefresh, self.jobchoose ],layout=w.Layout(**main.ldict)),
-			w.Label('Job output'),
+			w.Label('Job standard output and Kubernetes details'),
 			w.HBox([ self.jobout, self.k8sout ],layout=w.Layout(**main.ldict)),
+			w.HTML('''
+<h4>Purge Kubernetes jobs</h4>
+Use with care, the button removes all Gromacs jobs, including all running simulations
+(of yours, not other portal users).
+'''),
 			self.purge,
-			w.Label('Working directory'),
+			w.HTML('<h4>Content of working directory</h4>'),
 			self.dirls,
 			self.dir,
 			self.purgedir
