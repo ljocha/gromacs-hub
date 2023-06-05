@@ -62,29 +62,38 @@ Frames are sampled every 10 ps. The slider controls both the animation above and
 	#	self.main.msg.value = ''
 		self.trload.disabled = True
 		odesc = self.trload.description
+		ostyle = self.trload.button_style
 		self.trload.description = 'loading trajectory'
+		self.trload.button_style = 'info'
 		pwd = self.main.select.cwd()
-		if os.path.getmtime(f'{pwd}/pbc.xtc') < os.path.getmtime(f'{pwd}/md.xtc'):
-			gmx = GMX(workdir=pwd,pvc=self.main.pvc)
-			gmx.start("trjconv -f md.xtc -s npt.gro -pbc nojump -o pbc.xtc",input=1)
-			while True:
-				stat = gmx.status()
-				if stat.succeeded:
-					gmx.delete()
-					break
-				if stat.failed:
-					self.main.msg.value = gmx.log()
-					self.trload.description = odesc
-					self.trload.disablded = False
-					gmx.delete()
-					return
-				time.sleep(2)
+		try:
+			if not os.path.exists(f'{pwd}/pbc.xtc') or \
+					os.path.getmtime(f'{pwd}/pbc.xtc') < os.path.getmtime(f'{pwd}/md.xtc'):
+				gmx = GMX(workdir=pwd,pvc=self.main.pvc)
+				gmx.start("trjconv -f md.xtc -s npt.gro -pbc nojump -o pbc.xtc",input=1)
+				while True:
+					stat = gmx.status()
+					if stat.succeeded:
+						gmx.delete()
+						break
+					if stat.failed:
+						self.main.msg.value = gmx.log()
+						self.trload.description = odesc
+						self.trload.disablded = False
+						gmx.delete()
+						return
+					time.sleep(2)
 		
-		tr = md.load_xtc(f'{pwd}/pbc.xtc',top=f'{pwd}/mol.gro')
-		idx=tr[0].top.select("name CA")
-		tr.superpose(tr[0],atom_indices=idx)
-		self.main.view.show_trajectory(tr)
+			tr = md.load_xtc(f'{pwd}/pbc.xtc',top=f'{pwd}/mol.gro')
+			idx=tr[0].top.select("name CA")
+			tr.superpose(tr[0],atom_indices=idx)
+			self.main.view.show_trajectory(tr)
+
+		except FileNotFoundError as e:
+			self.main.msg = f'File not found: {e}'
+
 		self.trload.description = odesc
+		self.trload.button_style = ostyle
 		self.trload.disabled = False
 		self.frame.max = len(tr)
 

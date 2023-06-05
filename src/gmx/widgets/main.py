@@ -40,11 +40,14 @@ class Main(w.VBox):
 		self.children = [ c for c in children if c is not None ]
 
 	def gather_status(self,stat):
+		stat['msg'] = self.msg.value
 		for w in self.children:
 			if hasattr(w.__class__,'gather_status'):
 				w.gather_status(stat)
 
 	def restore_status(self,stat):
+		if 'msg' in stat:
+			self.msg.value = stat['msg']
 		try:
 			for w in self.children:
 				if hasattr(w.__class__,'restore_status'):
@@ -54,6 +57,7 @@ class Main(w.VBox):
 			self.reset_status()
 
 	def reset_status(self):
+		self.msg.value = ''
 		for w in self.children:
 			if hasattr(w.__class__,'reset_status'):
 				w.reset_status()

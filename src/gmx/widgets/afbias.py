@@ -58,7 +58,10 @@ increase it if the subsequent MD crashes becaouse of too high energy, high veloc
 		try:
 			self.main.msg.value = ''
 			self.download.disabled = True
+			odesc = self.download.description
+			ostyle = self.download.button_style
 			self.download.description = 'downloading...'
+			self.download.button_style = 'info'
 			urllib.request.urlretrieve(self.url.value,f'{cwd}/af.zip')
 			self.download.description = 'parsing...'
 			self._parse_zip()
@@ -66,7 +69,8 @@ increase it if the subsequent MD crashes becaouse of too high energy, high veloc
 			self.main.msg.value = str(e)
 		finally:
 			self.download.disabled = False
-			self.download.description = 'Download'
+			self.download.description = odesc
+			self.download.button_style = ostyle
 
 		self.main.status.savestat(lock=True)
 
@@ -93,6 +97,10 @@ increase it if the subsequent MD crashes becaouse of too high energy, high veloc
 			
 	def _generate(self,e):
 		self.main.msg.value = ''
+		odesc = self.generate.description
+		ostyle = self.generate.button_style
+		self.generate.description = '... generating ...'
+		self.generate.button_style = 'info'
 		try:
 			cwd = self.main.select.cwd()
 			mn = self.models.value.split(':')[0]
@@ -141,6 +149,8 @@ increase it if the subsequent MD crashes becaouse of too high energy, high veloc
 		except Exception as e:
 			self.main.msg.value = str(e)
 
+		self.generate.description = odesc
+		self.generate.button_style = ostyle
 
 	def gather_status(self,stat):
 		mystat = dict()

@@ -46,7 +46,7 @@ class MD(w.VBox):
 
 	def _merge_plumed(self):
 		cwd = self.main.select.cwd()
-		if self.afbias.value or self.alpharmsd: # XXX or something else
+		if self.afbias.value or self.alpharmsd.value: # XXX or something else
 			tr = md.load(f'{cwd}/npt.gro')
 			natoms = tr.topology.select('protein').shape[0]
 			plmd = f"""
@@ -58,7 +58,7 @@ MOLINFO STRUCTURE=mol.pdb
 				plmd += self.main.ctrl.bias.af.dat.value
 				metad.append('afscore')
 
-			if self.alpharmsd:
+			if self.alpharmsd.value:
 				plmd += self.main.ctrl.bias.alpharmsd.dat.value
 				metad.append('alpharmsd')
 
@@ -74,9 +74,14 @@ MOLINFO STRUCTURE=mol.pdb
 				p.write(plmd)
 				p.write('\n')
 				
+	def _button_reset(self):
+		self.startbutton.description = 'Start'
+		self.startbutton.button_style = ''
 
 	def status(self):
 		cwd = self.main.select.cwd()
+		self.startbutton.description = '... running ...'
+		self.startbutton.button_style = 'info'
 		if not self.gmx:
 			with open("md.mdp.template") as t:
 				mdp = t.readlines()
@@ -91,6 +96,7 @@ MOLINFO STRUCTURE=mol.pdb
 				self._merge_plumed()
 			except Exception as e:
 				self.main.msg.value = str(e)
+				self._button_reset()
 				return 'error'
 		
 			self.gmx = GMX(workdir=cwd,pvc=self.main.pvc)
@@ -102,12 +108,14 @@ MOLINFO STRUCTURE=mol.pdb
 			stat = self.gmx.cooked()
 			if not stat:
 				self.main.msg.value = 'Cannot read gromacs status'
+				self._button_reset()
 				return 'error'
 
 			if stat == 'done': 
 				self.gmx.delete()
 				if self.phase == 'mdrun':
 					self.mdprog.value = 1.
+					self._button_reset()
 					return 'idle'
 
 				self.phase = 'mdrun'
@@ -127,6 +135,7 @@ MOLINFO STRUCTURE=mol.pdb
 			elif stat == 'error':
 				log = self.gmx.log()
 				self.main.msg.value = log if log else 'Unknown gromacs errror'
+				self._button_reset()
 				return 'error'
 			elif stat == 'starting': yield 'starting',self.phase,2
 			elif stat == 'running': 
@@ -165,6 +174,7 @@ MOLINFO STRUCTURE=mol.pdb
 			stat['md']['gmx'] = self.gmx.name
 
 	def restore_status(self,stat):
+		self._button_reset()
 		try:
 			self.nsec.value = stat['md']['nsec']
 			self.nsteps = int(500 * 1000 * self.nsec.value)
