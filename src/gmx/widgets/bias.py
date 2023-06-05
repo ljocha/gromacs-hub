@@ -7,8 +7,10 @@ class Bias(w.Tab):
 		self.main = main
 		self.children = [ w.Label('blabla'), w.Label('hohoh') ]
 		self.af = gw.AFBias(main)
-		self.children = [ self.af ]
+		self.alpharmsd = gw.AlphaRMSD(main)
+		self.children = [ self.af, self.alpharmsd ]
 		self.set_title(0,'AlphaFold')
+		self.set_title(1,'Alpha RMSD')
 
 	def gather_status(self,stat):
 		for w in self.children:

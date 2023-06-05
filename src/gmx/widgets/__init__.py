@@ -9,3 +9,4 @@ from .md import MD
 from .bias import Bias
 from .afbias import AFBias
 from .mdview import MDView
+from .alpharmsd import AlphaRMSD

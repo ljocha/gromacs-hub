@@ -16,6 +16,7 @@ class Warmup(w.VBox):
 		mdbox = 2.0
 		self.simple_cmds = {
 			"pdb2gmx": "pdb2gmx -f orig.pdb -o mol.gro -p mol.top -water tip3p -ff amber94 -ignh",
+			"gro2pdb": "pdb2gmx -f mol.gro -o mol.pdb -p shit.top -water tip3p -ff amber94",
 			"editconf": f"editconf -f mol.gro -o box.gro -c -d {mdbox} -bt dodecahedron",
 			"solvate": "solvate -cp box.gro -cs spc216.gro -o solv.gro -p mol.top",
 			"grompp-ions": "grompp -f ../ions.mdp -c solv.gro -p mol.top -o ions.tpr",
