@@ -16,7 +16,7 @@ class GMX:
 		self.batchapi = k8s.client.BatchV1Api()
 		self.coreapi = k8s.client.CoreV1Api()
 
-	def start(self,cmd,input=None,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
+	def start(self,cmd=None,input=None,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
 		
 		if self.name:
 			raise RuntimeError(f"job {self.name} already running, delete() it first")
@@ -25,14 +25,19 @@ class GMX:
 			cores = (cores,cores)
 			
 		self.name = "gmx-" + str(uuid.uuid4())
-		if isinstance(cmd,list):
-			cmd = ' '.join(map(lambda s: f'"{s}"',cmd))
 
-		if input is not None:
-			cmd += f' <<<"{input}"'
-		
-		kcmd = ['bash', '-c', 'gmx ' + cmd]
-		
+		if cmd is None:
+			kcmd = [ 'sleep', '365d' ]
+
+		else:
+			if isinstance(cmd,list):
+				cmd = ' '.join(map(lambda s: f'"{s}"',cmd))
+	
+			if input is not None:
+				cmd += f' <<<"{input}"'
+			
+			kcmd = ['bash', '-c', 'gmx ' + cmd]
+			
 		yml = f"""\
 apiVersion: batch/v1
 kind: Job
@@ -86,8 +91,30 @@ spec:
 			self.log(tail=tail)
 			if delete:
 				self.delete()
-				
-				
+
+	def exec(self,cmd,input=None):
+		if isinstance(cmd,list):
+			cmd = ' '.join(map(lambda s: f'"{s}"',cmd))
+
+		if input is not None:
+			cmd += f' <<<"{input}"'
+		
+		kcmd = ['bash', '-c', 'gmx ' + cmd]
+			
+		if self.name:
+			while not self.status().ready:
+				time.sleep(1)
+
+			pod = self.coreapi.list_namespaced_pod(self.ns,label_selector=f'job-name={self.name}').items[0].metadata.name
+
+			resp = k8s.stream.stream(self.coreapi.connect_get_namespaced_pod_exec,
+													pod, self.ns,
+													command=kcmd,
+													stderr=True, stdin=False, stdout=True, tty=False)
+
+			return resp
+		return None
+
 	def status(self,pretty=True):
 		if self.name:
 			try:
@@ -111,6 +138,9 @@ spec:
 	def delete(self):
 		if self.name:
 			try:
+				l = self.coreapi.list_namespaced_pod(self.ns,label_selector=f'job-name={self.name}')
+				for i in l.items:
+					self.coreapi.delete_namespaced_pod(i.metadata.name, self.ns)
 				self.batchapi.delete_namespaced_job(self.name, self.ns)
 			except k8s.client.exceptions.ApiException:
 				pass
