@@ -79,6 +79,9 @@ spec:
 				
 		yml = yaml.safe_load(yml)
 		self.job = self.batchapi.create_namespaced_job(self.ns,yml)
+		self.exec_resp = None
+		self.exec_out = ''
+		self.exec_err = ''
 
 		if wait:
 #			print(self.status().succeeded)
@@ -107,12 +110,13 @@ spec:
 
 			pod = self.coreapi.list_namespaced_pod(self.ns,label_selector=f'job-name={self.name}').items[0].metadata.name
 
-			resp = k8s.stream.stream(self.coreapi.connect_get_namespaced_pod_exec,
+			self.exec_resp = k8s.stream.stream(self.coreapi.connect_get_namespaced_pod_exec,
 													pod, self.ns,
 													command=kcmd,
-													stderr=True, stdin=False, stdout=True, tty=False)
+													stderr=True, stdin=False, stdout=True, tty=False,
+													_preload_content=False)
 
-			return resp
+			return self.exec_resp
 		return None
 
 	def status(self,pretty=True):
@@ -129,7 +133,19 @@ spec:
 			if stat.failed: return 'error'
 			if stat.succeeded: return 'done'
 			if stat.active and not stat.ready: return 'starting'
-			if stat.active: return 'running'
+			if stat.active: 
+				if self.exec_resp:
+					self.exec_out += self.exec_resp.read_stdout()
+					self.exec_err += self.exec_resp.read_stderr()
+					r = self.exec_resp.returncode
+					if r is None:
+						return 'running'
+					elif r == 0:
+						return 'done'
+					else:
+						return 'error'
+				else:
+					return 'running'
 			if not stat.active: return 'starting'
 			print(stat)
 			raise ValueError('unknown status')
@@ -154,10 +170,13 @@ spec:
 	def log(self, tail=None):
 		out = None
 		if self.name:
-			with os.popen(f"kubectl logs job/{self.name}") as p:
-				if tail:
-					out = ''.join(p.readlines()[:-tail])
-				else:
-					out = ''.join(p.readlines())
+			if self.exec_resp:
+				out = self.exec_out + self.exec_err
+			else:
+				with os.popen(f"kubectl logs job/{self.name}") as p:
+					if tail:
+						out = ''.join(p.readlines()[:-tail])
+					else:
+						out = ''.join(p.readlines())
 
 		return out
