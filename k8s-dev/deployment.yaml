@@ -17,11 +17,17 @@ spec:
         runAsGroup: 1002
         fsGroup: 1002
         fsGroupChangePolicy: "OnRootMismatch"
+        seccompProfile:
+          type: RuntimeDefault
       containers:      
       - name: gromacs-portal-dev
         image: IMAGE
         securityContext:
           allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+
         ports:
           - containerPort: 9000
         resources:
