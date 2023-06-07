@@ -15,8 +15,9 @@ class GMX:
 		k8s.config.load_incluster_config()
 		self.batchapi = k8s.client.BatchV1Api()
 		self.coreapi = k8s.client.CoreV1Api()
+		self.exec_resp = None
 
-	def start(self,cmd=None,input=None,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
+	def start(self,cmd=None,input=None,gmx=True,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
 		
 		if self.name:
 			raise RuntimeError(f"job {self.name} already running, delete() it first")
@@ -36,7 +37,8 @@ class GMX:
 			if input is not None:
 				cmd += f' <<<"{input}"'
 			
-			kcmd = ['bash', '-c', 'gmx ' + cmd]
+			gmx = 'gmx ' if gmx else ''
+			kcmd = ['bash', '-c', gmx + cmd]
 			
 		yml = f"""\
 apiVersion: batch/v1
@@ -129,6 +131,7 @@ spec:
 
 	def cooked(self):
 		stat = self.status()
+#		print('cooked: ',stat)
 		if stat:
 			if stat.failed: return 'error'
 			if stat.succeeded: return 'done'
