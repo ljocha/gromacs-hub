@@ -15,8 +15,9 @@ class GMX:
 		k8s.config.load_incluster_config()
 		self.batchapi = k8s.client.BatchV1Api()
 		self.coreapi = k8s.client.CoreV1Api()
+		self.exec_resp = None
 
-	def start(self,cmd,input=None,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
+	def start(self,cmd=None,input=None,gmx=True,gpus=0,gputype='mig-1g.10gb',cores=1,mem=4,wait=False,delete=False,tail=10):
 		
 		if self.name:
 			raise RuntimeError(f"job {self.name} already running, delete() it first")
@@ -25,14 +26,20 @@ class GMX:
 			cores = (cores,cores)
 			
 		self.name = "gmx-" + str(uuid.uuid4())
-		if isinstance(cmd,list):
-			cmd = ' '.join(map(lambda s: f'"{s}"',cmd))
 
-		if input is not None:
-			cmd += f' <<<"{input}"'
-		
-		kcmd = ['bash', '-c', 'gmx ' + cmd]
-		
+		if cmd is None:
+			kcmd = [ 'sleep', '365d' ]
+
+		else:
+			if isinstance(cmd,list):
+				cmd = ' '.join(map(lambda s: f'"{s}"',cmd))
+	
+			if input is not None:
+				cmd += f' <<<"{input}"'
+			
+			gmx = 'gmx ' if gmx else ''
+			kcmd = ['bash', '-c', gmx + cmd]
+			
 		yml = f"""\
 apiVersion: batch/v1
 kind: Job
@@ -74,6 +81,9 @@ spec:
 				
 		yml = yaml.safe_load(yml)
 		self.job = self.batchapi.create_namespaced_job(self.ns,yml)
+		self.exec_resp = None
+		self.exec_out = ''
+		self.exec_err = ''
 
 		if wait:
 #			print(self.status().succeeded)
@@ -86,8 +96,31 @@ spec:
 			self.log(tail=tail)
 			if delete:
 				self.delete()
-				
-				
+
+	def exec(self,cmd,input=None):
+		if isinstance(cmd,list):
+			cmd = ' '.join(map(lambda s: f'"{s}"',cmd))
+
+		if input is not None:
+			cmd += f' <<<"{input}"'
+		
+		kcmd = ['bash', '-c', 'gmx ' + cmd]
+			
+		if self.name:
+			while not self.status().ready:
+				time.sleep(1)
+
+			pod = self.coreapi.list_namespaced_pod(self.ns,label_selector=f'job-name={self.name}').items[0].metadata.name
+
+			self.exec_resp = k8s.stream.stream(self.coreapi.connect_get_namespaced_pod_exec,
+													pod, self.ns,
+													command=kcmd,
+													stderr=True, stdin=False, stdout=True, tty=False,
+													_preload_content=False)
+
+			return self.exec_resp
+		return None
+
 	def status(self,pretty=True):
 		if self.name:
 			try:
@@ -98,11 +131,24 @@ spec:
 
 	def cooked(self):
 		stat = self.status()
+#		print('cooked: ',stat)
 		if stat:
 			if stat.failed: return 'error'
 			if stat.succeeded: return 'done'
 			if stat.active and not stat.ready: return 'starting'
-			if stat.active: return 'running'
+			if stat.active: 
+				if self.exec_resp:
+					self.exec_out += self.exec_resp.read_stdout()
+					self.exec_err += self.exec_resp.read_stderr()
+					r = self.exec_resp.returncode
+					if r is None:
+						return 'running'
+					elif r == 0:
+						return 'done'
+					else:
+						return 'error'
+				else:
+					return 'running'
 			if not stat.active: return 'starting'
 			print(stat)
 			raise ValueError('unknown status')
@@ -111,6 +157,9 @@ spec:
 	def delete(self):
 		if self.name:
 			try:
+				l = self.coreapi.list_namespaced_pod(self.ns,label_selector=f'job-name={self.name}')
+				for i in l.items:
+					self.coreapi.delete_namespaced_pod(i.metadata.name, self.ns)
 				self.batchapi.delete_namespaced_job(self.name, self.ns)
 			except k8s.client.exceptions.ApiException:
 				pass
@@ -124,10 +173,13 @@ spec:
 	def log(self, tail=None):
 		out = None
 		if self.name:
-			with os.popen(f"kubectl logs job/{self.name}") as p:
-				if tail:
-					out = ''.join(p.readlines()[:-tail])
-				else:
-					out = ''.join(p.readlines())
+			if self.exec_resp:
+				out = self.exec_out + self.exec_err
+			else:
+				with os.popen(f"kubectl logs job/{self.name}") as p:
+					if tail:
+						out = ''.join(p.readlines()[:-tail])
+					else:
+						out = ''.join(p.readlines())
 
 		return out

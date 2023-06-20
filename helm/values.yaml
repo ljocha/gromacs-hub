@@ -12,6 +12,17 @@ proxy:
       limits:
         cpu: 1
         memory: 256Mi
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+    extraPodSpec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+
 
 rbac:
   create: false
@@ -114,6 +125,9 @@ hub:
     runAsUser: 1000
     runAsGroup: 1000
     allowPrivilegeEscalation: false
+    capabilities:
+     drop:
+     - ALL
   consecutiveFailureLimit: 0
   networkPolicy:
     interNamespaceAccessLabels: "accept"
